@@ -1,0 +1,2536 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>RealChat Pro - Chat, Story, Akun & Video Call</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        :root {
+            --primary: #6C63FF;
+            --primary-gradient: linear-gradient(135deg, #6C63FF, #5A52D5);
+            --secondary: #FF6B6B;
+            --bg-dark: #0A0A0F;
+            --text-primary: #FFFFFF;
+            --text-secondary: #B0B0C8;
+            --text-muted: #6E6E8A;
+            --border-color: rgba(108, 99, 255, 0.15);
+            --radius-sm: 10px;
+            --icon-size: 1.6rem;
+            --icon-size-sm: 1.3rem;
+            --icon-size-lg: 2.2rem;
+            --header-height: 60px;
+            --tabbar-height: 58px;
+        }
+
+        html, body {
+            width: 100%; height: 100%; overflow: hidden;
+            font-family: -apple-system, 'Segoe UI', Roboto, system-ui, sans-serif;
+            background: var(--bg-dark); color: var(--text-primary);
+            position: fixed; inset: 0;
+        }
+
+        /* ===== LOGIN ===== */
+        .login-screen {
+            position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+            z-index: 1000; padding: 20px; background: var(--bg-dark); overflow-y: auto;
+        }
+        .login-screen.hidden { opacity: 0; pointer-events: none; transform: scale(0.95); }
+        .login-background {
+            position: absolute; inset: 0;
+            background: radial-gradient(ellipse at 30% 20%, rgba(108, 99, 255, 0.08) 0%, transparent 70%),
+                radial-gradient(ellipse at 70% 80%, rgba(108, 99, 255, 0.05) 0%, transparent 60%);
+        }
+        .login-content { position: relative; z-index: 1; max-width: 420px; width: 100%; text-align: center; }
+        .login-brand { margin-bottom: 28px; }
+        .login-logo {
+            width: 90px; height: 90px; margin: 0 auto 14px; background: var(--primary-gradient);
+            border-radius: 26px; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 0 60px rgba(108, 99, 255, 0.15);
+        }
+        .login-logo i { font-size: 3.2rem; color: white; }
+        .login-title { font-size: 1.8rem; font-weight: 700; letter-spacing: -0.5px; }
+        .login-title span { color: #8B83FF; }
+        .login-subtitle { color: var(--text-secondary); font-size: 0.8rem; margin-top: 2px; }
+        .login-form {
+            background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(20px);
+            border-radius: 16px; padding: 28px 24px 24px; border: 1px solid var(--border-color);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+        .auth-toggle {
+            display: flex; background: rgba(255, 255, 255, 0.04); border-radius: var(--radius-sm);
+            padding: 4px; margin-bottom: 22px; border: 1px solid var(--border-color);
+        }
+        .auth-toggle .auth-tab {
+            flex: 1; padding: 10px 0; border: none; background: transparent;
+            color: var(--text-secondary); font-size: 0.9rem; font-weight: 600;
+            cursor: pointer; border-radius: 8px; font-family: inherit;
+        }
+        .auth-toggle .auth-tab i { font-size: var(--icon-size-sm); margin-right: 6px; }
+        .auth-toggle .auth-tab.active { background: var(--primary-gradient); color: white; }
+        .login-success {
+            display: none; align-items: center; gap: 12px;
+            background: rgba(108, 99, 255, 0.08); border: 1px solid rgba(108, 99, 255, 0.15);
+            border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 16px;
+        }
+        .login-success.show { display: flex; }
+        .login-success i { color: #8B83FF; font-size: 1.3rem; }
+        .login-success .msg { color: var(--text-secondary); font-size: 0.9rem; flex: 1; text-align: left; }
+        .form-group { text-align: left; margin-bottom: 16px; }
+        .form-group label {
+            display: block; color: var(--text-secondary); font-size: 0.7rem; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 5px;
+        }
+        .form-group label i { margin-right: 6px; color: #8B83FF; font-size: var(--icon-size-sm); }
+        .input-wrapper {
+            display: flex; align-items: center; background: rgba(255, 255, 255, 0.04);
+            border-radius: var(--radius-sm); border: 2px solid var(--border-color); overflow: hidden;
+        }
+        .input-wrapper:focus-within { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(108, 99, 255, 0.06); }
+        .input-wrapper.error { border-color: var(--secondary); }
+        .input-wrapper.success { border-color: var(--primary); }
+        .input-wrapper .prefix {
+            padding: 0 10px 0 14px; color: var(--text-secondary); font-size: 0.9rem;
+            font-weight: 600; border-right: 1px solid var(--border-color); min-width: 36px;
+            text-align: center; flex-shrink: 0;
+        }
+        .input-wrapper input {
+            flex: 1; padding: 12px; background: transparent; border: none; color: var(--text-primary);
+            font-size: 0.95rem; outline: none; font-weight: 500; min-width: 0;
+        }
+        .input-wrapper input::placeholder { color: var(--text-muted); font-size: 0.8rem; }
+        .input-wrapper input[type="number"]::-webkit-inner-spin-button,
+        .input-wrapper input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+        .input-wrapper input[type="number"] { -moz-appearance: textfield; }
+        .input-wrapper .toggle-password {
+            background: transparent; border: none; color: var(--text-muted); padding: 0 14px;
+            cursor: pointer; font-size: var(--icon-size-sm); height: 100%; display: flex; align-items: center;
+        }
+        .helper-text { color: var(--text-muted); font-size: 0.7rem; margin-top: 5px; padding-left: 4px; }
+        .helper-text.error { color: var(--secondary); }
+        .helper-text.success { color: #8B83FF; }
+        .btn-login {
+            background: var(--primary-gradient); border: none; color: white; padding: 14px;
+            border-radius: var(--radius-sm); font-size: 1rem; font-weight: 600; cursor: pointer;
+            width: 100%; box-shadow: 0 4px 20px rgba(108, 99, 255, 0.2);
+            display: flex; align-items: center; justify-content: center; gap: 10px; font-family: inherit;
+        }
+        .btn-login:disabled { opacity: 0.5; cursor: not-allowed; }
+        .saved-info {
+            color: var(--text-muted); font-size: 0.7rem; margin-top: 12px; padding: 10px 14px;
+            background: rgba(255, 255, 255, 0.02); border-radius: var(--radius-sm);
+            border: 1px solid var(--border-color); display: flex; align-items: center;
+            justify-content: space-between; gap: 8px; flex-wrap: wrap;
+        }
+        .saved-info .saved-label { display: flex; align-items: center; gap: 6px; }
+        .saved-info .saved-label i { color: #8B83FF; }
+        .saved-info .saved-number { color: var(--text-primary); font-weight: 500; font-family: 'Courier New', monospace; }
+        .saved-info .saved-actions a {
+            color: #8B83FF; cursor: pointer; font-weight: 600; font-size: 0.7rem;
+            padding: 2px 8px; border-radius: 4px; background: rgba(108, 99, 255, 0.06);
+        }
+
+        /* ===== APP CONTAINER ===== */
+        .app-container {
+            position: fixed; inset: 0; width: 100%; height: 100%; height: 100dvh;
+            background: var(--bg-dark); opacity: 0; transform: scale(0.98);
+            display: flex; flex-direction: column; overflow: hidden; z-index: 10;
+            padding-top: env(safe-area-inset-top, 0);
+            padding-bottom: env(safe-area-inset-bottom, 0);
+            padding-left: env(safe-area-inset-left, 0);
+            padding-right: env(safe-area-inset-right, 0);
+        }
+        .app-container.visible { opacity: 1; transform: scale(1); }
+
+        .app-header {
+            position: relative; flex-shrink: 0; background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(16px); padding: 10px 16px;
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid var(--border-color); min-height: var(--header-height); z-index: 30;
+        }
+        .user-info { display: flex; align-items: center; gap: 12px; }
+        .user-avatar {
+            width: 42px; height: 42px; border-radius: 50%; background: var(--primary-gradient);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 1rem; color: white; flex-shrink: 0;
+        }
+        .user-details .name { font-weight: 600; font-size: 0.9rem; line-height: 1.2; }
+        .user-details .number { color: var(--text-secondary); font-size: 0.6rem; font-family: 'Courier New', monospace; }
+        .header-actions { display: flex; align-items: center; gap: 8px; }
+        .media-indicator {
+            display: flex; gap: 6px; padding: 4px 10px; background: rgba(255, 255, 255, 0.04);
+            border-radius: 16px; border: 1px solid var(--border-color);
+        }
+        .media-indicator .indicator {
+            display: flex; align-items: center; font-size: 0.6rem; color: var(--text-muted);
+            padding: 2px 4px; border-radius: 4px;
+        }
+        .media-indicator .indicator i { font-size: var(--icon-size-sm); }
+        .media-indicator .indicator.active { color: #4CAF50; }
+        .media-indicator .indicator.inactive { color: var(--secondary); }
+        .logout-btn {
+            background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-color);
+            color: var(--text-secondary); padding: 6px 12px; border-radius: 16px;
+            cursor: pointer; font-size: 0.7rem; display: flex; align-items: center;
+            gap: 6px; font-family: inherit;
+        }
+        .logout-btn i { font-size: var(--icon-size-sm); }
+
+        .tab-content {
+            flex: 1; position: relative; overflow: hidden;
+            width: 100%; min-height: 0; display: flex; flex-direction: column;
+        }
+        .tab-panel {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            display: flex; flex-direction: column; opacity: 0; pointer-events: none;
+            transition: opacity 0.25s ease; overflow: hidden; background: var(--bg-dark);
+        }
+        .tab-panel.active { opacity: 1; pointer-events: all; z-index: 5; }
+
+        /* ===== CHAT PANEL ===== */
+        .chat-panel { background: var(--bg-dark); height: 100%; display: flex; flex-direction: column; width: 100%; min-height: 0; }
+        .chat-header {
+            background: rgba(0, 0, 0, 0.4); padding: 10px 16px;
+            border-bottom: 1px solid var(--border-color); flex-shrink: 0;
+            display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+        }
+        .chat-header .chat-title { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); }
+        .chat-header .chat-title i { color: #8B83FF; font-size: var(--icon-size); }
+        .chat-target-group { display: flex; align-items: center; gap: 8px; flex: 1; max-width: 320px; min-width: 150px; }
+        .chat-target-group .chat-input {
+            flex: 1; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm); padding: 8px 12px; color: var(--text-primary);
+            font-size: 0.8rem; outline: none; font-family: 'Courier New', monospace; min-width: 0;
+        }
+        .chat-target-group .chat-input::placeholder { color: var(--text-muted); font-family: inherit; font-size: 0.7rem; }
+        .chat-target-group .btn-connect {
+            background: var(--primary-gradient); border: none; color: white;
+            padding: 8px 16px; border-radius: var(--radius-sm); font-size: 0.7rem;
+            font-weight: 600; cursor: pointer; white-space: nowrap; font-family: inherit;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .chat-target-group .btn-connect.disconnect { background: rgba(255, 107, 107, 0.2); color: var(--secondary); }
+        .chat-status-badge {
+            display: flex; align-items: center; gap: 4px; font-size: 0.6rem;
+            color: var(--text-muted); padding: 4px 10px;
+            background: rgba(255, 255, 255, 0.02); border-radius: 12px;
+            border: 1px solid var(--border-color); white-space: nowrap;
+        }
+        .chat-status-badge .dot-chat { width: 6px; height: 6px; border-radius: 50%; background: var(--text-muted); display: inline-block; }
+        .chat-status-badge .dot-chat.online { background: #4CAF50; animation: blink 1.2s infinite; }
+        @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.2; } }
+        .chat-messages {
+            flex: 1; overflow-y: auto; padding: 12px 16px; display: flex;
+            flex-direction: column; gap: 6px; background: rgba(0, 0, 0, 0.15);
+            min-height: 0; -webkit-overflow-scrolling: touch;
+        }
+        .chat-msg { max-width: 80%; padding: 10px 16px; border-radius: var(--radius-sm); font-size: 0.85rem; line-height: 1.4; word-wrap: break-word; }
+        .chat-msg.sent { align-self: flex-end; background: var(--primary-gradient); color: white; border-bottom-right-radius: 4px; }
+        .chat-msg.received { align-self: flex-start; background: rgba(255, 255, 255, 0.05); color: var(--text-primary); border-bottom-left-radius: 4px; border: 1px solid var(--border-color); }
+        .chat-msg .msg-time { font-size: 0.5rem; color: rgba(255, 255, 255, 0.4); margin-top: 4px; display: block; text-align: right; }
+        .chat-msg.received .msg-time { color: var(--text-muted); }
+        .chat-msg .msg-sender { font-size: 0.55rem; font-weight: 600; color: #8B83FF; display: block; margin-bottom: 2px; }
+        .chat-msg.system {
+            align-self: center; background: rgba(255, 255, 255, 0.02);
+            color: var(--text-muted); font-size: 0.65rem; padding: 4px 14px;
+            border-radius: 12px; border: 1px solid var(--border-color); max-width: 90%; text-align: center;
+        }
+        .chat-empty {
+            flex: 1; display: flex; flex-direction: column; align-items: center;
+            justify-content: center; color: var(--text-muted); text-align: center; padding: 20px;
+        }
+        .chat-empty i { font-size: 4rem; color: rgba(255, 255, 255, 0.03); margin-bottom: 8px; }
+        .chat-empty span { font-size: 0.8rem; color: rgba(255, 255, 255, 0.15); }
+        .chat-input-area {
+            display: flex; gap: 10px; padding: 12px 16px; background: rgba(0, 0, 0, 0.5);
+            border-top: 1px solid var(--border-color); flex-shrink: 0; align-items: flex-end;
+        }
+        .chat-input-area .msg-input {
+            flex: 1; background: rgba(255, 255, 255, 0.06); border: 1px solid var(--border-color);
+            border-radius: 22px; padding: 10px 16px; color: var(--text-primary);
+            font-size: 0.85rem; outline: none; font-family: inherit; resize: none;
+            min-height: 42px; max-height: 100px; line-height: 1.4; -webkit-appearance: none;
+        }
+        .chat-input-area .msg-input::placeholder { color: var(--text-muted); font-size: 0.75rem; }
+        .chat-input-area .btn-send {
+            background: var(--primary-gradient); border: none; color: white;
+            width: 46px; height: 46px; border-radius: 50%; font-size: var(--icon-size);
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; font-family: inherit;
+        }
+        .chat-input-area .btn-send:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        /* ===== AKUN PANEL ===== */
+        .akun-panel { background: var(--bg-dark); height: 100%; display: flex; flex-direction: column; width: 100%; min-height: 0; }
+        .akun-header {
+            background: rgba(0, 0, 0, 0.4); padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color); flex-shrink: 0;
+            display: flex; align-items: center; justify-content: space-between; gap: 10px;
+        }
+        .akun-header .akun-title {
+            display: flex; align-items: center; gap: 8px; font-size: 0.9rem;
+            font-weight: 600; color: var(--text-secondary);
+        }
+        .akun-header .akun-title i { color: #8B83FF; font-size: var(--icon-size); }
+        .akun-header .akun-count {
+            font-size: 0.65rem; color: var(--text-muted);
+            background: rgba(255, 255, 255, 0.04); padding: 4px 10px;
+            border-radius: 12px; border: 1px solid var(--border-color);
+        }
+        .akun-search {
+            padding: 10px 16px; flex-shrink: 0;
+            border-bottom: 1px solid var(--border-color);
+            background: rgba(0, 0, 0, 0.2);
+        }
+        .akun-search-input {
+            width: 100%; padding: 10px 14px; background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color); border-radius: 20px;
+            color: var(--text-primary); font-size: 0.85rem; outline: none;
+            font-family: inherit;
+        }
+        .akun-search-input::placeholder { color: var(--text-muted); font-size: 0.8rem; }
+        .akun-search-input:focus { border-color: var(--primary); background: rgba(108, 99, 255, 0.05); }
+
+        .akun-list {
+            flex: 1; overflow-y: auto; padding: 8px 12px;
+            display: flex; flex-direction: column; gap: 4px;
+            -webkit-overflow-scrolling: touch;
+        }
+        .akun-item {
+            display: flex; align-items: center; gap: 14px;
+            padding: 12px; border-radius: var(--radius-sm);
+            cursor: pointer; transition: all 0.15s;
+            border: 1px solid transparent;
+        }
+        .akun-item:hover, .akun-item:active {
+            background: rgba(255, 255, 255, 0.04);
+            border-color: var(--border-color);
+        }
+        .akun-item-avatar {
+            width: 48px; height: 48px; border-radius: 50%;
+            background: var(--primary-gradient);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 1.05rem; color: white;
+            flex-shrink: 0; position: relative;
+        }
+        .akun-item-avatar.offline { background: rgba(108, 99, 255, 0.3); }
+        .akun-item-avatar .online-dot {
+            position: absolute; bottom: 0; right: 0;
+            width: 13px; height: 13px; border-radius: 50%;
+            background: #4CAF50; border: 2px solid var(--bg-dark);
+            display: none;
+        }
+        .akun-item-avatar .online-dot.show { display: block; }
+        .akun-item-info { flex: 1; min-width: 0; }
+        .akun-item-info .akun-name {
+            font-weight: 600; font-size: 0.9rem; color: var(--text-primary);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .akun-item-info .akun-phone {
+            font-size: 0.7rem; color: var(--text-secondary); margin-top: 2px;
+            font-family: 'Courier New', monospace;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .akun-item-actions {
+            display: flex; gap: 6px; flex-shrink: 0;
+        }
+        .akun-item-action {
+            width: 36px; height: 36px; border-radius: 50%;
+            border: none; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.9rem; transition: all 0.15s;
+        }
+        .akun-item-action.chat-action {
+            background: rgba(108, 99, 255, 0.15); color: #8B83FF;
+        }
+        .akun-item-action.video-action {
+            background: rgba(76, 175, 80, 0.15); color: #4CAF50;
+        }
+        .akun-item-action:active { transform: scale(0.9); }
+
+        .akun-empty {
+            flex: 1; display: flex; flex-direction: column; align-items: center;
+            justify-content: center; color: var(--text-muted); text-align: center; padding: 40px 20px;
+        }
+        .akun-empty i { font-size: 4rem; color: rgba(255, 255, 255, 0.05); margin-bottom: 12px; }
+        .akun-empty h3 { font-size: 0.95rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
+        .akun-empty p { font-size: 0.75rem; color: var(--text-muted); max-width: 280px; line-height: 1.5; }
+
+        /* ===== STORY PANEL ===== */
+        .story-panel { background: var(--bg-dark); height: 100%; display: flex; flex-direction: column; width: 100%; min-height: 0; }
+        .story-header {
+            background: rgba(0, 0, 0, 0.4); padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color); flex-shrink: 0;
+            display: flex; align-items: center; justify-content: space-between; gap: 10px;
+        }
+        .story-header .story-title { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; font-weight: 600; color: var(--text-secondary); }
+        .story-header .story-title i { color: #8B83FF; font-size: var(--icon-size); }
+        .story-header .btn-new-story {
+            background: var(--primary-gradient); border: none; color: white;
+            padding: 8px 16px; border-radius: 20px; font-size: 0.75rem;
+            font-weight: 600; cursor: pointer; font-family: inherit;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .story-header .btn-new-story i { font-size: var(--icon-size-sm); }
+        .story-list {
+            flex: 1; overflow-y: auto; padding: 12px 16px;
+            display: flex; flex-direction: column; gap: 10px;
+            -webkit-overflow-scrolling: touch;
+        }
+        .story-item {
+            display: flex; align-items: center; gap: 14px;
+            padding: 10px 12px; border-radius: var(--radius-sm);
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            cursor: pointer; transition: all 0.2s;
+        }
+        .story-item:hover { background: rgba(255, 255, 255, 0.06); }
+        .story-avatar {
+            width: 52px; height: 52px; border-radius: 50%;
+            flex-shrink: 0; position: relative; padding: 3px;
+            background: linear-gradient(135deg, #6C63FF, #5A52D5);
+        }
+        .story-avatar.mine { background: linear-gradient(135deg, #FF6B6B, #6C63FF); }
+        .story-avatar.viewed { background: rgba(255, 255, 255, 0.15); }
+        .story-avatar-inner {
+            width: 100%; height: 100%; border-radius: 50%;
+            background: #1A1A22;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 1rem; color: white;
+            overflow: hidden; border: 2px solid var(--bg-dark);
+        }
+        .story-avatar-inner img { width: 100%; height: 100%; object-fit: cover; }
+        .story-avatar .add-badge {
+            position: absolute; bottom: -2px; right: -2px;
+            width: 20px; height: 20px; border-radius: 50%;
+            background: var(--primary-gradient);
+            display: flex; align-items: center; justify-content: center;
+            border: 2px solid var(--bg-dark); font-size: 0.6rem; color: white;
+        }
+        .story-info { flex: 1; min-width: 0; }
+        .story-info .story-name { font-weight: 600; font-size: 0.85rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .story-info .story-meta { font-size: 0.65rem; color: var(--text-secondary); margin-top: 2px; display: flex; align-items: center; gap: 6px; }
+        .story-info .story-meta i { font-size: 0.6rem; }
+        .story-count-badge {
+            background: rgba(108, 99, 255, 0.2); color: #8B83FF;
+            font-size: 0.65rem; font-weight: 700;
+            padding: 3px 10px; border-radius: 12px; flex-shrink: 0;
+        }
+        .story-empty {
+            flex: 1; display: flex; flex-direction: column; align-items: center;
+            justify-content: center; color: var(--text-muted); text-align: center; padding: 40px 20px;
+        }
+        .story-empty i { font-size: 4rem; color: rgba(255, 255, 255, 0.05); margin-bottom: 12px; }
+        .story-empty h3 { font-size: 0.95rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
+        .story-empty p { font-size: 0.75rem; color: var(--text-muted); max-width: 280px; line-height: 1.5; }
+        .story-empty .btn-create {
+            margin-top: 20px; background: var(--primary-gradient); border: none; color: white;
+            padding: 12px 24px; border-radius: 24px; font-size: 0.8rem;
+            font-weight: 600; cursor: pointer; font-family: inherit;
+            display: flex; align-items: center; gap: 8px;
+        }
+
+        /* ===== STORY VIEWER ===== */
+        .story-viewer { position: fixed; inset: 0; background: #000; z-index: 2000; display: none; flex-direction: column; }
+        .story-viewer.show { display: flex; }
+        .story-viewer-header {
+            position: absolute; top: 0; left: 0; right: 0; z-index: 10;
+            padding: calc(16px + env(safe-area-inset-top, 0)) 16px 16px;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
+            display: flex; align-items: center; justify-content: space-between; gap: 12px;
+        }
+        .story-viewer-user { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+        .story-viewer-avatar {
+            width: 42px; height: 42px; border-radius: 50%; background: var(--primary-gradient);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; color: white; flex-shrink: 0; padding: 2px;
+        }
+        .story-viewer-avatar-inner {
+            width: 100%; height: 100%; border-radius: 50%; background: #1A1A22;
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden; border: 2px solid #000;
+        }
+        .story-viewer-avatar-inner img { width: 100%; height: 100%; object-fit: cover; }
+        .story-viewer-info { flex: 1; min-width: 0; }
+        .story-viewer-info .name { font-weight: 600; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .story-viewer-info .time { font-size: 0.65rem; color: rgba(255,255,255,0.7); }
+        .story-viewer-close {
+            background: rgba(255, 255, 255, 0.1); border: none; color: white;
+            width: 38px; height: 38px; border-radius: 50%; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1rem; flex-shrink: 0;
+        }
+        .story-progress-bar {
+            position: absolute; top: calc(8px + env(safe-area-inset-top, 0));
+            left: 8px; right: 8px; height: 3px; display: flex; gap: 3px; z-index: 15;
+        }
+        .story-progress-segment { flex: 1; height: 100%; background: rgba(255, 255, 255, 0.3); border-radius: 2px; overflow: hidden; }
+        .story-progress-fill { height: 100%; background: white; width: 0%; transition: width 0.1s linear; }
+        .story-content { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+        .story-content img, .story-content video { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .story-nav-zone { position: absolute; top: 0; bottom: 0; width: 30%; z-index: 5; cursor: pointer; }
+        .story-nav-zone.left { left: 0; }
+        .story-nav-zone.right { right: 0; }
+
+        /* ===== UPLOAD MODAL ===== */
+        .upload-modal {
+            position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px); z-index: 3000;
+            display: none; align-items: center; justify-content: center; padding: 20px;
+        }
+        .upload-modal.show { display: flex; }
+        .upload-modal-content {
+            background: #14141C; border: 1px solid var(--border-color);
+            border-radius: 16px; padding: 24px; width: 100%; max-width: 400px; text-align: center;
+        }
+        .upload-modal-content h3 { font-size: 1.1rem; margin-bottom: 8px; }
+        .upload-modal-content p { font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 20px; }
+        .upload-options { display: flex; gap: 12px; margin-bottom: 20px; }
+        .upload-option {
+            flex: 1; padding: 20px 12px; border-radius: 12px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 2px solid var(--border-color);
+            cursor: pointer; transition: all 0.2s;
+            display: flex; flex-direction: column; align-items: center; gap: 8px;
+        }
+        .upload-option:hover { background: rgba(108, 99, 255, 0.1); border-color: var(--primary); }
+        .upload-option i { font-size: 1.8rem; color: #8B83FF; }
+        .upload-option span { font-size: 0.75rem; font-weight: 600; }
+        .upload-preview { margin-bottom: 16px; display: none; }
+        .upload-preview.show { display: block; }
+        .upload-preview img, .upload-preview video { max-width: 100%; max-height: 240px; border-radius: 10px; background: #000; }
+        .upload-caption {
+            width: 100%; padding: 12px 14px; margin-bottom: 16px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-color); border-radius: 10px;
+            color: var(--text-primary); font-size: 0.85rem; font-family: inherit;
+            outline: none; resize: none;
+        }
+        .upload-caption::placeholder { color: var(--text-muted); }
+        .upload-actions { display: flex; gap: 10px; }
+        .upload-actions button {
+            flex: 1; padding: 12px; border-radius: 10px; border: none;
+            font-size: 0.85rem; font-weight: 600; cursor: pointer; font-family: inherit;
+        }
+        .btn-cancel { background: rgba(255, 255, 255, 0.06); color: var(--text-secondary); }
+        .btn-post { background: var(--primary-gradient); color: white; box-shadow: 0 4px 20px rgba(108, 99, 255, 0.2); }
+        .btn-post:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* ===== ACTION SHEET ===== */
+        .action-sheet-overlay {
+            position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px); z-index: 4000;
+            display: none; align-items: flex-end; justify-content: center;
+        }
+        .action-sheet-overlay.show { display: flex; }
+        .action-sheet {
+            background: #14141C;
+            border-radius: 20px 20px 0 0;
+            width: 100%; max-width: 480px;
+            padding: 20px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+            animation: slideUpSheet 0.25s ease;
+            border-top: 1px solid var(--border-color);
+        }
+        @keyframes slideUpSheet {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        .action-sheet-header {
+            display: flex; align-items: center; gap: 12px;
+            padding-bottom: 16px; margin-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .action-sheet-avatar {
+            width: 50px; height: 50px; border-radius: 50%;
+            background: var(--primary-gradient);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 1.1rem; color: white;
+            flex-shrink: 0;
+        }
+        .action-sheet-info { flex: 1; min-width: 0; }
+        .action-sheet-info .name { font-weight: 600; font-size: 0.95rem; }
+        .action-sheet-info .phone { font-size: 0.7rem; color: var(--text-secondary); font-family: 'Courier New', monospace; margin-top: 2px; }
+        .action-sheet-btn {
+            display: flex; align-items: center; gap: 14px;
+            padding: 14px 8px; border-radius: 12px; cursor: pointer;
+            border: none; background: transparent; width: 100%;
+            color: var(--text-primary); font-family: inherit;
+            font-size: 0.9rem; font-weight: 500; transition: all 0.15s;
+            text-align: left;
+        }
+        .action-sheet-btn:hover, .action-sheet-btn:active { background: rgba(255, 255, 255, 0.04); }
+        .action-sheet-btn i {
+            width: 40px; height: 40px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1rem; flex-shrink: 0;
+        }
+        .action-sheet-btn.chat i { background: rgba(108, 99, 255, 0.15); color: #8B83FF; }
+        .action-sheet-btn.video i { background: rgba(76, 175, 80, 0.15); color: #4CAF50; }
+        .action-sheet-btn.cancel { color: var(--secondary); }
+        .action-sheet-btn.cancel i { background: rgba(255, 107, 107, 0.15); color: var(--secondary); }
+
+        /* ===== VIDEO PANEL ===== */
+        .video-panel { background: #050508; height: 100%; display: flex; flex-direction: column; width: 100%; min-height: 0; }
+        .video-panel .call-header {
+            background: rgba(0, 0, 0, 0.5); padding: 10px 16px;
+            border-bottom: 1px solid var(--border-color); flex-shrink: 0;
+            display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;
+        }
+        .video-panel .call-header .call-title { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); }
+        .video-panel .call-header .call-title i { color: #8B83FF; font-size: var(--icon-size); }
+        .video-panel .call-target-group { display: flex; align-items: center; gap: 8px; flex: 1; max-width: 300px; min-width: 130px; }
+        .video-panel .call-target-group .call-input-video {
+            flex: 1; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm); padding: 8px 12px; color: var(--text-primary);
+            font-size: 0.8rem; outline: none; font-family: 'Courier New', monospace; min-width: 0;
+        }
+        .video-panel .call-target-group .call-input-video::placeholder { color: var(--text-muted); font-family: inherit; font-size: 0.6rem; }
+        .video-panel .call-target-group .btn-call-video {
+            background: var(--primary-gradient); border: none; color: white;
+            padding: 8px 16px; border-radius: var(--radius-sm); font-size: 0.7rem;
+            font-weight: 600; cursor: pointer; white-space: nowrap; font-family: inherit;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .video-panel .call-target-group .btn-call-video.endcall-btn { background: rgba(220, 38, 38, 0.2); color: var(--secondary); }
+        .video-panel .call-status-badge-video {
+            display: flex; align-items: center; gap: 4px; font-size: 0.6rem;
+            color: var(--text-muted); padding: 4px 10px;
+            background: rgba(255, 255, 255, 0.02); border-radius: 12px;
+            border: 1px solid var(--border-color); white-space: nowrap;
+        }
+        .video-panel .call-status-badge-video .dot-video { width: 6px; height: 6px; border-radius: 50%; background: var(--text-muted); display: inline-block; }
+        .video-panel .call-status-badge-video .dot-video.active { background: #4CAF50; animation: blink 1.2s infinite; }
+        .video-panel .call-status-badge-video .dot-video.error { background: var(--secondary); }
+        .video-panel .video-container { flex: 1; position: relative; background: #050508; overflow: hidden; min-height: 0; width: 100%; }
+        .video-panel .video-container #remoteVideo { width: 100%; height: 100%; object-fit: cover; background: #050508; }
+        .video-panel .video-container .remote-placeholder {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            color: var(--text-muted); text-align: center; pointer-events: none;
+        }
+        .video-panel .video-container .remote-placeholder i { font-size: 5rem; color: rgba(255, 255, 255, 0.04); display: block; margin-bottom: 8px; }
+        .video-panel .video-container .remote-placeholder span { font-size: 0.85rem; color: rgba(255, 255, 255, 0.12); }
+        .video-panel .video-container .call-info-overlay {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            text-align: center; pointer-events: none; z-index: 5;
+        }
+        .video-panel .video-container .call-info-overlay.hidden { opacity: 0; }
+        .video-panel .video-container .call-info-overlay .caller-avatar {
+            width: 70px; height: 70px; background: rgba(255, 255, 255, 0.04);
+            border-radius: 50%; display: flex; align-items: center;
+            justify-content: center; margin: 0 auto 10px;
+            border: 2px solid rgba(108, 99, 255, 0.15);
+        }
+        .video-panel .video-container .call-info-overlay .caller-avatar i { font-size: 2.5rem; color: #8B83FF; }
+        .video-panel .video-container .call-info-overlay .caller-name { color: var(--text-primary); font-size: 1.1rem; font-weight: 600; }
+        .video-panel .video-container .call-info-overlay .caller-status { color: var(--text-secondary); font-size: 0.8rem; margin-top: 2px; }
+        .video-panel .video-container .call-info-overlay .call-timer {
+            color: #8B83FF; font-size: 1.2rem; margin-top: 4px;
+            font-family: 'Courier New', monospace; font-weight: 600; letter-spacing: 2px;
+        }
+        .video-panel .incoming-call-overlay {
+            position: absolute; inset: 0; background: rgba(0, 0, 0, 0.92);
+            backdrop-filter: blur(24px); z-index: 50; display: none;
+            flex-direction: column; align-items: center; justify-content: center;
+            gap: 14px; padding: 30px;
+        }
+        .video-panel .incoming-call-overlay.show { display: flex; }
+        .video-panel .incoming-call-overlay .caller-avatar-big {
+            width: 100px; height: 100px; background: rgba(255, 255, 255, 0.04);
+            border-radius: 50%; display: flex; align-items: center;
+            justify-content: center; border: 2px solid rgba(108, 99, 255, 0.15);
+        }
+        .video-panel .incoming-call-overlay .caller-avatar-big.ringing { animation: ringPulse 0.8s ease-in-out infinite; }
+        @keyframes ringPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+        .video-panel .incoming-call-overlay .caller-avatar-big i { font-size: 3.4rem; color: #8B83FF; }
+        .video-panel .incoming-call-overlay .caller-name-big { color: var(--text-primary); font-size: 1.4rem; font-weight: 700; }
+        .video-panel .incoming-call-overlay .caller-number-big { color: var(--text-secondary); font-size: 0.9rem; font-family: 'Courier New', monospace; }
+        .video-panel .incoming-call-overlay .caller-type { color: var(--text-muted); font-size: 0.8rem; }
+        .video-panel .incoming-call-overlay .caller-type i { color: #8B83FF; margin-right: 4px; }
+        .video-panel .incoming-actions { display: flex; gap: 40px; margin-top: 20px; }
+        .video-panel .incoming-actions button {
+            width: 70px; height: 70px; border-radius: 50%; border: none;
+            font-size: 2rem; cursor: pointer; display: flex;
+            align-items: center; justify-content: center;
+            position: relative; flex-direction: column; font-family: inherit;
+        }
+        .video-panel .incoming-actions button .label {
+            position: absolute; bottom: -28px; font-size: 0.6rem;
+            color: var(--text-secondary); font-weight: 500; white-space: nowrap;
+        }
+        .video-panel .incoming-actions .btn-answer { background: var(--primary-gradient); color: white; }
+        .video-panel .incoming-actions .btn-reject { background: linear-gradient(135deg, #dc2626, #991b1b); color: white; }
+        .video-panel .local-video-container {
+            position: absolute; bottom: 110px; right: 14px;
+            width: 110px; height: 147px; border-radius: var(--radius-sm);
+            overflow: hidden; border: 2px solid rgba(108, 99, 255, 0.25);
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6); z-index: 10;
+            background: #0f0f1a; cursor: grab; touch-action: none;
+        }
+        .video-panel .local-video-container #localVideo { width: 100%; height: 100%; object-fit: cover; background: #0f0f1a; }
+        .video-panel .local-video-container .local-placeholder {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            color: var(--text-muted); text-align: center; pointer-events: none; font-size: 0.6rem;
+        }
+        .video-panel .local-video-container .local-placeholder i { font-size: 2rem; color: rgba(255, 255, 255, 0.06); display: block; margin-bottom: 4px; }
+        .video-panel .local-video-container .local-label {
+            position: absolute; bottom: 4px; left: 6px;
+            background: rgba(0, 0, 0, 0.5); padding: 2px 10px;
+            border-radius: 4px; font-size: 0.5rem; color: rgba(255, 255, 255, 0.5);
+        }
+        .video-panel .zoom-btn {
+            position: absolute; top: 12px; right: 12px;
+            background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(8px);
+            border: 1px solid var(--border-color); color: var(--text-secondary);
+            width: 40px; height: 40px; border-radius: 50%; font-size: 1.1rem;
+            cursor: pointer; z-index: 15; display: flex;
+            align-items: center; justify-content: center; font-family: inherit;
+        }
+        .video-panel .call-controls {
+            position: absolute; bottom: 20px; left: 0; right: 0;
+            display: flex; justify-content: center; gap: 16px;
+            padding: 0 16px; z-index: 20; padding-top: 28px;
+        }
+        .video-panel .call-controls .ctrl-btn {
+            width: 56px; height: 56px; border-radius: 50%; border: none;
+            background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(12px);
+            color: var(--text-primary); font-size: var(--icon-size); cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            position: relative; font-family: inherit;
+        }
+        .video-panel .call-controls .ctrl-btn.active { background: rgba(108, 99, 255, 0.2); border-color: rgba(108, 99, 255, 0.3); }
+        .video-panel .call-controls .ctrl-btn.off { background: rgba(255, 107, 107, 0.15); border-color: rgba(255, 107, 107, 0.2); color: var(--secondary); }
+        .video-panel .call-controls .ctrl-btn.speaker-on { background: rgba(108, 99, 255, 0.2); border-color: var(--primary); }
+        .video-panel .call-controls .ctrl-btn.end-call {
+            background: linear-gradient(135deg, #dc2626, #991b1b);
+            border-color: transparent; width: 64px; height: 64px;
+            font-size: var(--icon-size-lg);
+        }
+
+        /* ===== TAB BAR - 4 TABS ===== */
+        .tab-bar {
+            position: relative; flex-shrink: 0; display: flex;
+            background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(16px);
+            border-top: 1px solid var(--border-color);
+            padding: 4px 0; min-height: var(--tabbar-height); z-index: 30;
+        }
+        .tab-item {
+            flex: 1; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 2px;
+            padding: 6px 0; border: none; background: transparent;
+            color: var(--text-muted); font-size: 0.55rem; font-weight: 600;
+            cursor: pointer; font-family: inherit; position: relative;
+        }
+        .tab-item i { font-size: 1.4rem; transition: transform 0.2s; }
+        .tab-item.active { color: #8B83FF; }
+        .tab-item.active i { transform: translateY(-2px); }
+        .tab-item .badge {
+            position: absolute; top: 2px; right: 50%;
+            transform: translateX(calc(50% + 16px));
+            background: var(--secondary); color: white;
+            font-size: 0.5rem; font-weight: 700; padding: 1px 6px;
+            border-radius: 10px; min-width: 16px; text-align: center; display: none;
+        }
+        .tab-item .badge.show { display: block; }
+
+        /* ===== TOAST ===== */
+        .toast-notification {
+            position: fixed; bottom: 100px; left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: rgba(16, 16, 24, 0.95); backdrop-filter: blur(20px);
+            color: var(--text-primary); padding: 10px 24px;
+            border-radius: 30px; font-size: 0.85rem;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6); opacity: 0;
+            pointer-events: none; z-index: 9999;
+            display: flex; align-items: center; gap: 10px; max-width: 90%;
+            transition: all 0.3s;
+        }
+        .toast-notification.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .toast-notification .toast-icon-success { color: #4CAF50; }
+        .toast-notification .toast-icon-error { color: var(--secondary); }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 480px) {
+            :root {
+                --icon-size: 1.3rem;
+                --icon-size-sm: 1.1rem;
+                --icon-size-lg: 1.8rem;
+                --header-height: 56px;
+                --tabbar-height: 54px;
+            }
+            .video-panel .local-video-container { width: 90px; height: 120px; bottom: 100px; right: 10px; }
+            .video-panel .call-controls { gap: 14px; }
+            .video-panel .call-controls .ctrl-btn { width: 50px; height: 50px; }
+            .video-panel .call-controls .ctrl-btn.end-call { width: 56px; height: 56px; }
+            .login-logo { width: 72px; height: 72px; }
+            .login-logo i { font-size: 2.6rem; }
+            .login-title { font-size: 1.5rem; }
+            .login-form { padding: 20px 16px 18px; }
+            .chat-header { padding: 8px 12px; }
+            .chat-msg { font-size: 0.8rem; padding: 8px 12px; max-width: 85%; }
+            .chat-messages { padding: 10px 12px; }
+            .chat-input-area { padding: 8px 12px; }
+            .chat-input-area .btn-send { width: 42px; height: 42px; }
+            .app-header { padding: 8px 12px; }
+            .app-header .user-avatar { width: 36px; height: 36px; font-size: 0.85rem; }
+            .tab-item i { font-size: 1.25rem; }
+            .tab-item { font-size: 0.5rem; }
+            .story-avatar { width: 46px; height: 46px; }
+            .akun-item-avatar { width: 44px; height: 44px; font-size: 1rem; }
+            .akun-item-action { width: 34px; height: 34px; font-size: 0.85rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== LOGIN SCREEN ===== -->
+    <div class="login-screen" id="loginScreen">
+        <div class="login-background"></div>
+        <div class="login-content">
+            <div class="login-brand">
+                <div class="login-logo"><i class="fas fa-comment-dots"></i></div>
+                <h1 class="login-title">S@ndy<span>Lud@ni</span></h1>
+                <p class="login-subtitle">Chat, Story, Akun &amp; Video Call</p>
+            </div>
+            <div class="login-form">
+                <div class="login-success" id="loginSuccess">
+                    <i class="fas fa-check-circle"></i>
+                    <span class="msg" id="loginSuccessMsg">Berhasil!</span>
+                </div>
+                <div class="auth-toggle" id="authToggle">
+                    <button class="auth-tab active" data-mode="login" onclick="switchAuthMode('login')">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </button>
+                    <button class="auth-tab" data-mode="register" onclick="switchAuthMode('register')">
+                        <i class="fas fa-user-plus"></i> Daftar
+                    </button>
+                </div>
+                <div id="loginForm">
+                    <div class="form-group">
+                        <label><i class="fas fa-mobile-alt"></i> Nomor Telepon</label>
+                        <div class="input-wrapper" id="loginPhoneWrapper">
+                            <span class="prefix">+62</span>
+                            <input type="number" id="loginPhoneInput" placeholder="8123456789" maxlength="10" />
+                        </div>
+                        <div class="helper-text" id="loginPhoneHelper"><span>Masukkan 10 digit angka</span></div>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-lock"></i> Password</label>
+                        <div class="input-wrapper" id="loginPassWrapper">
+                            <input type="password" id="loginPasswordInput" placeholder="Masukkan password" />
+                            <button class="toggle-password" type="button" onclick="togglePassword('loginPasswordInput', this)">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="helper-text" id="loginPassHelper"><span>Masukkan password Anda</span></div>
+                    </div>
+                    <button class="btn-login" id="loginBtn" onclick="handleLogin()">
+                        <i class="fas fa-sign-in-alt"></i> Masuk
+                    </button>
+                </div>
+                <div id="registerForm" style="display:none;">
+                    <div class="form-group">
+                        <label><i class="fas fa-mobile-alt"></i> Nomor Telepon</label>
+                        <div class="input-wrapper" id="registerPhoneWrapper">
+                            <span class="prefix">+62</span>
+                            <input type="number" id="registerPhoneInput" placeholder="8123456789" maxlength="10" />
+                        </div>
+                        <div class="helper-text" id="registerPhoneHelper"><span>Masukkan 10 digit angka</span></div>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-lock"></i> Password</label>
+                        <div class="input-wrapper" id="registerPassWrapper">
+                            <input type="password" id="registerPasswordInput" placeholder="Buat password (min. 4 karakter)" />
+                            <button class="toggle-password" type="button" onclick="togglePassword('registerPasswordInput', this)">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="helper-text" id="registerPassHelper"><span>Minimal 4 karakter</span></div>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-check-circle"></i> Konfirmasi Password</label>
+                        <div class="input-wrapper" id="registerConfirmWrapper">
+                            <input type="password" id="registerConfirmInput" placeholder="Konfirmasi password" />
+                            <button class="toggle-password" type="button" onclick="togglePassword('registerConfirmInput', this)">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="helper-text" id="registerConfirmHelper"><span>Ketik ulang password Anda</span></div>
+                    </div>
+                    <button class="btn-login" id="registerBtn" onclick="handleRegister()">
+                        <i class="fas fa-user-plus"></i> Daftar
+                    </button>
+                </div>
+                <div class="saved-info" id="savedInfo" style="display:none;">
+                    <span class="saved-label">
+                        <i class="fas fa-history"></i> Login terakhir:
+                        <span class="saved-number" id="savedNumber">-</span>
+                    </span>
+                    <span class="saved-actions"><a onclick="useSaved()">Gunakan</a></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== APP CONTAINER ===== -->
+    <div class="app-container" id="appContainer">
+        <div class="app-header">
+            <div class="user-info">
+                <div class="user-avatar" id="userAvatar">S</div>
+                <div class="user-details">
+                    <div class="name" id="userName">Pengguna</div>
+                    <div class="number" id="userNumber">+62 8123456789</div>
+                </div>
+            </div>
+            <div class="header-actions">
+                <div class="media-indicator" id="mediaIndicator">
+                    <span class="indicator" id="micIndicator"><i class="fas fa-microphone"></i></span>
+                    <span class="indicator" id="camIndicator"><i class="fas fa-video"></i></span>
+                </div>
+                <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button>
+            </div>
+        </div>
+
+        <div class="tab-content">
+            <!-- CHAT TAB -->
+            <div class="tab-panel active" id="chatPanel">
+                <div class="chat-panel">
+                    <div class="chat-header">
+                        <div class="chat-title"><i class="fas fa-comment"></i> Chat</div>
+                        <div class="chat-target-group">
+                            <input type="number" class="chat-input" id="chatTargetInput" placeholder="8123456789" maxlength="10" />
+                            <button class="btn-connect" id="chatConnectBtn" onclick="toggleChatConnection()">
+                                <i class="fas fa-plug"></i> Hubung
+                            </button>
+                        </div>
+                        <div class="chat-status-badge" id="chatStatusBadge">
+                            <span class="dot-chat" id="chatDot"></span>
+                            <span id="chatStatusText">Putus</span>
+                        </div>
+                    </div>
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="chat-empty" id="chatEmpty">
+                            <i class="fas fa-comment-dots"></i>
+                            <span>Belum ada pesan. Hubungkan dengan nomor tujuan untuk mulai chatting.</span>
+                        </div>
+                    </div>
+                    <div class="chat-input-area">
+                        <textarea class="msg-input" id="msgInput" placeholder="Ketik pesan..." rows="1" disabled></textarea>
+                        <button class="btn-send" id="sendBtn" onclick="sendMessage()" disabled>
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AKUN TAB -->
+            <div class="tab-panel" id="akunPanel">
+                <div class="akun-panel">
+                    <div class="akun-header">
+                        <div class="akun-title"><i class="fas fa-users"></i> Akun</div>
+                        <div class="akun-count" id="akunCount">0 akun</div>
+                    </div>
+                    <div class="akun-search">
+                        <input type="text" class="akun-search-input" id="akunSearchInput" placeholder="Cari nama atau nomor..." oninput="renderAccountList()" />
+                    </div>
+                    <div class="akun-list" id="akunList">
+                        <!-- Akun list akan diisi oleh JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- STORY TAB -->
+            <div class="tab-panel" id="storyPanel">
+                <div class="story-panel">
+                    <div class="story-header">
+                        <div class="story-title"><i class="fas fa-circle-notch"></i> Story</div>
+                        <button class="btn-new-story" onclick="openUploadModal()">
+                            <i class="fas fa-plus"></i> Buat Story
+                        </button>
+                    </div>
+                    <div class="story-list" id="storyList">
+                        <!-- Story items akan diisi oleh JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIDEO TAB -->
+            <div class="tab-panel" id="videoPanel">
+                <div class="video-panel">
+                    <div class="call-header">
+                        <div class="call-title"><i class="fas fa-video"></i> Video Call</div>
+                        <div class="call-target-group">
+                            <input type="number" class="call-input-video" id="videoTargetInput" placeholder="8123456789" maxlength="10" />
+                            <button class="btn-call-video" id="videoCallBtn" onclick="toggleVideoCall()">
+                                <i class="fas fa-phone"></i> Panggil
+                            </button>
+                        </div>
+                        <div class="call-status-badge-video" id="videoStatusBadge">
+                            <span class="dot-video" id="videoDot"></span>
+                            <span id="videoStatusText">Siap</span>
+                        </div>
+                    </div>
+                    <div class="video-container" id="videoContainer">
+                        <video id="remoteVideo" autoplay playsinline></video>
+                        <div class="remote-placeholder" id="remotePlaceholderVideo">
+                            <i class="fas fa-user-friends"></i>
+                            <span>Menunggu panggilan...</span>
+                        </div>
+                        <div class="call-info-overlay" id="callInfoOverlayVideo">
+                            <div class="caller-avatar"><i class="fas fa-user"></i></div>
+                            <div class="caller-name" id="callerNameVideo">Menunggu</div>
+                            <div class="caller-status" id="callerStatusVideo">Siap melakukan panggilan</div>
+                            <div class="call-timer" id="callTimerVideo">00:00</div>
+                        </div>
+                        <div class="incoming-call-overlay" id="incomingCallOverlayVideo">
+                            <div class="caller-avatar-big ringing" id="ringingAvatarVideo">
+                                <i class="fas fa-phone-alt"></i>
+                            </div>
+                            <div class="caller-name-big" id="incomingCallerNameVideo">Panggilan Masuk</div>
+                            <div class="caller-number-big" id="incomingCallerNumberVideo">+62 8123456789</div>
+                            <div class="caller-type" id="incomingCallTypeVideo"><i class="fas fa-video"></i> Panggilan Video</div>
+                            <div class="incoming-actions">
+                                <button class="btn-reject" onclick="rejectCallVideo()">
+                                    <i class="fas fa-times"></i>
+                                    <span class="label">Tolak</span>
+                                </button>
+                                <button class="btn-answer" onclick="answerCallVideo()">
+                                    <i class="fas fa-phone"></i>
+                                    <span class="label">Terima</span>
+                                </button>
+                            </div>
+                        </div>
+                        <button class="zoom-btn" onclick="toggleFullscreenVideo()"><i class="fas fa-expand"></i></button>
+                        <div class="local-video-container" id="localVideoContainerVideo">
+                            <video id="localVideo" autoplay muted playsinline></video>
+                            <div class="local-placeholder" id="localPlaceholderVideo">
+                                <i class="fas fa-video"></i>
+                                <span>Kamera</span>
+                            </div>
+                            <span class="local-label">Anda</span>
+                        </div>
+                        <div class="call-controls">
+                            <button class="ctrl-btn active" onclick="toggleMuteVideo()" id="micBtnVideo">
+                                <i class="fas fa-microphone"></i>
+                            </button>
+                            <button class="ctrl-btn" onclick="toggleSpeakerVideo()" id="speakerBtnVideo">
+                                <i class="fas fa-volume-up"></i>
+                            </button>
+                            <button class="ctrl-btn active" onclick="toggleVideoCam()" id="videoBtnVideo">
+                                <i class="fas fa-video"></i>
+                            </button>
+                            <button class="ctrl-btn end-call" onclick="endCallVideo()">
+                                <i class="fas fa-phone-slash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB BAR - 4 TABS -->
+        <div class="tab-bar">
+            <button class="tab-item active" data-tab="chat" onclick="switchTab('chat')">
+                <i class="fas fa-comment-dots"></i>
+                <span>Chat</span>
+                <span class="badge" id="chatBadge">0</span>
+            </button>
+            <button class="tab-item" data-tab="akun" onclick="switchTab('akun')">
+                <i class="fas fa-users"></i>
+                <span>Akun</span>
+                <span class="badge" id="akunBadge">0</span>
+            </button>
+            <button class="tab-item" data-tab="story" onclick="switchTab('story')">
+                <i class="fas fa-circle-notch"></i>
+                <span>Story</span>
+                <span class="badge" id="storyBadge">0</span>
+            </button>
+            <button class="tab-item" data-tab="video" onclick="switchTab('video')">
+                <i class="fas fa-video"></i>
+                <span>Video Call</span>
+                <span class="badge" id="videoBadge">0</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- STORY VIEWER -->
+    <div class="story-viewer" id="storyViewer">
+        <div class="story-progress-bar" id="storyProgressBar"></div>
+        <div class="story-viewer-header">
+            <div class="story-viewer-user">
+                <div class="story-viewer-avatar" id="viewerAvatar">
+                    <div class="story-viewer-avatar-inner" id="viewerAvatarInner">S</div>
+                </div>
+                <div class="story-viewer-info">
+                    <div class="name" id="viewerName">Pengguna</div>
+                    <div class="time" id="viewerTime">Baru saja</div>
+                </div>
+            </div>
+            <button class="story-viewer-close" onclick="closeStoryViewer()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="story-content" id="storyContent"></div>
+        <div class="story-nav-zone left" onclick="prevStory()"></div>
+        <div class="story-nav-zone right" onclick="nextStory()"></div>
+    </div>
+
+    <!-- UPLOAD MODAL -->
+    <div class="upload-modal" id="uploadModal">
+        <div class="upload-modal-content">
+            <h3>Buat Story Baru</h3>
+            <p>Pilih gambar atau video dari galeri Anda</p>
+            <div class="upload-options" id="uploadOptions">
+                <div class="upload-option" onclick="document.getElementById('imagePicker').click()">
+                    <i class="fas fa-image"></i>
+                    <span>Gambar</span>
+                </div>
+                <div class="upload-option" onclick="document.getElementById('videoPicker').click()">
+                    <i class="fas fa-video"></i>
+                    <span>Video</span>
+                </div>
+            </div>
+            <div class="upload-preview" id="uploadPreview"></div>
+            <textarea class="upload-caption" id="uploadCaption" placeholder="Tulis caption (opsional)" rows="2"></textarea>
+            <div class="upload-actions">
+                <button class="btn-cancel" onclick="closeUploadModal()">Batal</button>
+                <button class="btn-post" id="btnPostStory" onclick="postStory()" disabled>
+                    <i class="fas fa-paper-plane"></i> Posting
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ACTION SHEET -->
+    <div class="action-sheet-overlay" id="actionSheetOverlay" onclick="closeActionSheet(event)">
+        <div class="action-sheet" onclick="event.stopPropagation()">
+            <div class="action-sheet-header">
+                <div class="action-sheet-avatar" id="actionSheetAvatar">A</div>
+                <div class="action-sheet-info">
+                    <div class="name" id="actionSheetName">Pengguna</div>
+                    <div class="phone" id="actionSheetPhone">+62 812 345 6789</div>
+                </div>
+            </div>
+            <button class="action-sheet-btn chat" onclick="actionSheetChat()">
+                <i class="fas fa-comment"></i>
+                <span>Kirim Pesan Chat</span>
+            </button>
+            <button class="action-sheet-btn video" onclick="actionSheetVideoCall()">
+                <i class="fas fa-video"></i>
+                <span>Panggilan Video</span>
+            </button>
+            <button class="action-sheet-btn cancel" onclick="closeActionSheet()">
+                <i class="fas fa-times"></i>
+                <span>Batal</span>
+            </button>
+        </div>
+    </div>
+
+    <input type="file" id="imagePicker" accept="image/*" style="display:none" onchange="handleFileSelect(event)" />
+    <input type="file" id="videoPicker" accept="video/*" style="display:none" onchange="handleFileSelect(event)" />
+
+    <!-- TOAST -->
+    <div class="toast-notification" id="toastNotification">
+        <i class="fas fa-check-circle toast-icon-success" id="toastIcon"></i>
+        <span id="toastMessage">Berhasil!</span>
+    </div>
+
+    <script>
+        // ========================================
+        // VARIABEL GLOBAL
+        // ========================================
+        let peer = null;
+        let currentCall = null;
+        let localStream = null;
+        let remoteStream = null;
+        let isCallActive = false;
+        let isMuted = false;
+        let isVideoOff = false;
+        let isSpeakerOn = false;
+        let callTimerInterval = null;
+        let incomingCall = null;
+        let isIncomingCall = false;
+        let myNumber = '';
+        let myPeerId = '';
+        let ringtoneInterval = null;
+        let chatDataConn = null;
+        let isChatConnected = false;
+        let chatPartner = '';
+        let chatMessages = [];
+        let videoCallActive = false;
+        let videoPartner = '';
+        let toastTimeout = null;
+        let currentAuthMode = 'login';
+        const MAX_RETRIES = 3;
+
+        let stories = [];
+        let myStories = [];
+        let currentViewerStories = [];
+        let currentViewerIndex = 0;
+        let storyTimer = null;
+        let storyProgressInterval = null;
+        let pendingFile = null;
+        let pendingFileType = null;
+        let currentStoryOwner = '';
+        let selectedAccountPhone = '';
+
+        const STORY_DURATION = 5000;
+        const STORY_EXPIRY_MS = 24 * 60 * 60 * 1000;
+
+        // ========================================
+        // STORAGE
+        // ========================================
+        function saveCredentials(phone, password) {
+            const creds = getCredentials();
+            creds[phone] = password;
+            localStorage.setItem('realcall_creds', JSON.stringify(creds));
+        }
+        function getCredentials() {
+            try { return JSON.parse(localStorage.getItem('realcall_creds')) || {}; }
+            catch { return {}; }
+        }
+        function getPassword(phone) { return getCredentials()[phone] || null; }
+        function userExists(phone) { return !!getCredentials()[phone]; }
+        function saveLastUser(phone) { localStorage.setItem('realcall_last_user', phone); }
+        function getLastUser() { return localStorage.getItem('realcall_last_user') || null; }
+        function clearLastUser() { localStorage.removeItem('realcall_last_user'); }
+
+        // ========================================
+        // USER PROFILES (untuk menu Akun)
+        // ========================================
+        function getUserProfiles() {
+            try { return JSON.parse(localStorage.getItem('realcall_profiles')) || {}; }
+            catch { return {}; }
+        }
+        function saveUserProfiles(profiles) {
+            localStorage.setItem('realcall_profiles', JSON.stringify(profiles));
+        }
+        function saveUserProfile(phone) {
+            const profiles = getUserProfiles();
+            const existing = profiles[phone] || {};
+            profiles[phone] = {
+                name: existing.name || ('Pengguna ' + phone.slice(-4)),
+                avatar: phone.slice(0, 2).toUpperCase(),
+                lastSeen: Date.now(),
+                createdAt: existing.createdAt || Date.now()
+            };
+            saveUserProfiles(profiles);
+        }
+        function updateLastSeen(phone) {
+            const profiles = getUserProfiles();
+            if (profiles[phone]) {
+                profiles[phone].lastSeen = Date.now();
+                saveUserProfiles(profiles);
+            }
+        }
+
+        // ========================================
+        // STORY STORAGE
+        // ========================================
+        function getMyStoriesKey() { return 'realcall_mystories_' + myNumber; }
+        function getReceivedStoriesKey() { return 'realcall_stories_' + myNumber; }
+
+        function saveMyStories() {
+            try { localStorage.setItem(getMyStoriesKey(), JSON.stringify(myStories)); }
+            catch (e) {
+                showToast('Penyimpanan penuh, story lama dihapus', false);
+                myStories = myStories.slice(-3);
+                try { localStorage.setItem(getMyStoriesKey(), JSON.stringify(myStories)); } catch (e2) {}
+            }
+        }
+        function saveReceivedStories() {
+            try { localStorage.setItem(getReceivedStoriesKey(), JSON.stringify(stories)); } catch (e) {}
+        }
+        function loadStories() {
+            try { myStories = JSON.parse(localStorage.getItem(getMyStoriesKey())) || []; } catch { myStories = []; }
+            try { stories = JSON.parse(localStorage.getItem(getReceivedStoriesKey())) || []; } catch { stories = []; }
+
+            const now = Date.now();
+            const beforeMy = myStories.length;
+            const beforeRec = stories.length;
+            myStories = myStories.filter(s => now - s.timestamp < STORY_EXPIRY_MS);
+            stories = stories.filter(s => now - s.timestamp < STORY_EXPIRY_MS);
+            if (beforeMy !== myStories.length) saveMyStories();
+            if (beforeRec !== stories.length) saveReceivedStories();
+            renderStoryList();
+        }
+
+        // ========================================
+        // AUTH
+        // ========================================
+        function switchAuthMode(mode) {
+            currentAuthMode = mode;
+            document.querySelectorAll('.auth-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.mode === mode);
+            });
+            document.getElementById('loginForm').style.display = mode === 'login' ? 'block' : 'none';
+            document.getElementById('registerForm').style.display = mode === 'register' ? 'block' : 'none';
+        }
+
+        function togglePassword(inputId, btn) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+            const icon = btn.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'fas fa-eye-slash';
+            } else {
+                input.type = 'password';
+                icon.className = 'fas fa-eye';
+            }
+        }
+
+        function validatePhone(number) {
+            const clean = number.replace(/\D/g, '');
+            if (!clean.startsWith('08')) return { valid: false, message: 'Nomor harus diawali 08' };
+            if (clean.length !== 10) return { valid: false, message: 'Nomor harus 10 digit angka' };
+            return { valid: true, message: 'Nomor valid', number: clean };
+        }
+        function validatePassword(pw) {
+            if (!pw || pw.length < 4) return { valid: false, message: 'Password minimal 4 karakter' };
+            return { valid: true, message: 'Password valid' };
+        }
+
+        function showToast(message, isSuccess = true) {
+            const toast = document.getElementById('toastNotification');
+            document.getElementById('toastMessage').textContent = message;
+            toast.className = 'toast-notification show';
+            document.getElementById('toastIcon').className = isSuccess ? 'fas fa-check-circle toast-icon-success' : 'fas fa-exclamation-circle toast-icon-error';
+            if (toastTimeout) clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        function updateSavedInfo() {
+            const saved = getLastUser();
+            const el = document.getElementById('savedInfo');
+            if (saved) {
+                const display = saved.slice(0, 4) + ' ' + saved.slice(4, 7) + ' ' + saved.slice(7);
+                document.getElementById('savedNumber').textContent = '+62 ' + display;
+                el.style.display = 'flex';
+                document.getElementById('loginPhoneInput').value = saved;
+                const pw = getPassword(saved);
+                if (pw) document.getElementById('loginPasswordInput').value = pw;
+            } else {
+                el.style.display = 'none';
+            }
+        }
+
+        function useSaved() {
+            const saved = getLastUser();
+            if (!saved) return;
+            switchAuthMode('login');
+            document.getElementById('loginPhoneInput').value = saved;
+            const pw = getPassword(saved);
+            if (pw) document.getElementById('loginPasswordInput').value = pw;
+            handleLogin();
+        }
+
+        // ========================================
+        // REGISTER / LOGIN
+        // ========================================
+        function handleRegister() {
+            const phoneInput = document.getElementById('registerPhoneInput');
+            const passInput = document.getElementById('registerPasswordInput');
+            const confirmInput = document.getElementById('registerConfirmInput');
+            const registerBtn = document.getElementById('registerBtn');
+
+            const phoneResult = validatePhone(phoneInput.value.trim());
+            if (!phoneResult.valid) { showToast(phoneResult.message, false); return; }
+            if (userExists(phoneResult.number)) { showToast('Nomor sudah terdaftar', false); return; }
+
+            const passResult = validatePassword(passInput.value);
+            if (!passResult.valid) { showToast(passResult.message, false); return; }
+            if (confirmInput.value !== passInput.value) { showToast('Password tidak cocok', false); return; }
+
+            saveCredentials(phoneResult.number, passInput.value);
+            saveUserProfile(phoneResult.number); // Simpan profil untuk menu Akun
+            saveLastUser(phoneResult.number);
+
+            document.getElementById('loginSuccessMsg').textContent = '✅ Registrasi berhasil! +62 ' + phoneResult.number;
+            document.getElementById('loginSuccess').className = 'login-success show';
+
+            registerBtn.disabled = true;
+            registerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mendaftar...';
+
+            setTimeout(() => {
+                myNumber = phoneResult.number;
+                performLogin(myNumber);
+            }, 600);
+        }
+
+        function handleLogin() {
+            const phoneInput = document.getElementById('loginPhoneInput');
+            const passInput = document.getElementById('loginPasswordInput');
+            const loginBtn = document.getElementById('loginBtn');
+
+            const phoneResult = validatePhone(phoneInput.value.trim());
+            if (!phoneResult.valid) { showToast(phoneResult.message, false); return; }
+            if (!userExists(phoneResult.number)) { showToast('Nomor belum terdaftar', false); return; }
+
+            const storedPass = getPassword(phoneResult.number);
+            if (passInput.value !== storedPass) { showToast('Password salah', false); return; }
+
+            saveUserProfile(phoneResult.number); // Simpan/update profil
+
+            document.getElementById('loginSuccessMsg').textContent = '✅ Login berhasil! +62 ' + phoneResult.number;
+            document.getElementById('loginSuccess').className = 'login-success show';
+
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menghubungkan...';
+
+            saveLastUser(phoneResult.number);
+            myNumber = phoneResult.number;
+
+            requestMediaPermissions().then(perm => {
+                if (!perm.granted) {
+                    showToast('Izin kamera/mikrofon ditolak. Chat & Story tetap tersedia.', false);
+                    performLoginWithStream(null);
+                    return;
+                }
+                startCameraStreamWithRetry(perm, MAX_RETRIES)
+                    .then(stream => {
+                        localStream = stream;
+                        const localVideo = document.getElementById('localVideo');
+                        localVideo.srcObject = stream;
+                        localVideo.onloadedmetadata = () => localVideo.play().catch(() => {});
+                        document.getElementById('localPlaceholderVideo').style.display = 'none';
+                        updateMediaIndicator();
+                        performLoginWithStream(stream);
+                    })
+                    .catch(err => {
+                        showToast('Gagal akses media: ' + err.message, false);
+                        performLoginWithStream(null);
+                    });
+            });
+        }
+
+        function performLoginWithStream(stream) {
+            localStream = stream || null;
+            loginToPeer(myNumber);
+        }
+
+        function resetLoginButtons() {
+            const loginBtn = document.getElementById('loginBtn');
+            const registerBtn = document.getElementById('registerBtn');
+            loginBtn.disabled = false;
+            loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Masuk';
+            registerBtn.disabled = false;
+            registerBtn.innerHTML = '<i class="fas fa-user-plus"></i> Daftar';
+        }
+
+        // ========================================
+        // MEDIA
+        // ========================================
+        function requestMediaPermissions() {
+            return new Promise((resolve) => {
+                navigator.mediaDevices.getUserMedia({ audio: true, video: true })
+                    .then(stream => { stream.getTracks().forEach(t => t.stop()); resolve({ granted: true, video: true, audio: true }); })
+                    .catch(() => {
+                        navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+                            .then(stream => { stream.getTracks().forEach(t => t.stop()); resolve({ granted: true, video: false, audio: true }); })
+                            .catch(() => {
+                                navigator.mediaDevices.getUserMedia({ audio: false, video: true })
+                                    .then(stream => { stream.getTracks().forEach(t => t.stop()); resolve({ granted: true, video: true, audio: false }); })
+                                    .catch(() => resolve({ granted: false, video: false, audio: false }));
+                            });
+                    });
+            });
+        }
+
+        function startCameraStreamWithRetry(perm, retries = MAX_RETRIES) {
+            return new Promise((resolve, reject) => {
+                const constraints = {
+                    audio: perm.audio ? { echoCancellation: true, noiseSuppression: true } : false,
+                    video: perm.video ? { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' } : false
+                };
+                function attempt() {
+                    navigator.mediaDevices.getUserMedia(constraints)
+                        .then(resolve)
+                        .catch(err => { if (retries > 0) setTimeout(attempt, 1000); else reject(err); });
+                }
+                attempt();
+            });
+        }
+
+        // ========================================
+        // PEER LOGIN
+        // ========================================
+        function loginToPeer(number) {
+            const peerId = 'rc_' + number;
+            if (peer) { peer.destroy(); peer = null; }
+
+            peer = new Peer(peerId, {
+                debug: 2,
+                config: { iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' },
+                    { urls: 'stun:stun2.l.google.com:19302' }
+                ]}
+            });
+
+            peer.on('open', function(id) {
+                myPeerId = id;
+                showToast('Login berhasil!', true);
+                setTimeout(() => {
+                    document.getElementById('loginScreen').classList.add('hidden');
+                    document.getElementById('appContainer').classList.add('visible');
+                    initApp(number);
+                }, 400);
+            });
+
+            peer.on('error', function(err) {
+                resetLoginButtons();
+                showToast(err.type === 'unavailable-id' ? 'Nomor sudah digunakan' : 'Gagal terhubung: ' + err.message, false);
+            });
+
+            peer.on('connection', function(conn) { handleIncomingChat(conn); });
+            peer.on('call', function(call) { handleIncomingCallVideo(call); });
+        }
+
+        // ========================================
+        // APP INIT
+        // ========================================
+        function initApp(number) {
+            const displayNumber = number.slice(0, 4) + ' ' + number.slice(4, 7) + ' ' + number.slice(7);
+            document.getElementById('userNumber').textContent = '+62 ' + displayNumber;
+            document.getElementById('userAvatar').textContent = number.slice(0, 2).toUpperCase();
+            document.getElementById('userName').textContent = 'Pengguna ' + number.slice(-4);
+
+            if (localStream) {
+                const localVideo = document.getElementById('localVideo');
+                localVideo.srcObject = localStream;
+                localVideo.onloadedmetadata = () => localVideo.play().catch(() => {});
+                document.getElementById('localPlaceholderVideo').style.display = 'none';
+                updateMediaIndicator();
+            } else {
+                document.getElementById('localPlaceholderVideo').style.display = 'flex';
+                document.getElementById('localPlaceholderVideo').innerHTML =
+                    '<i class="fas fa-video-slash" style="color:var(--secondary);"></i><span>Tidak ada kamera</span>';
+            }
+
+            resetLoginButtons();
+            updateChatStatus('Putus', false);
+            updateVideoStatus('Siap', false);
+
+            const lastChat = localStorage.getItem('realcall_last_chat');
+            if (lastChat) document.getElementById('chatTargetInput').value = lastChat;
+
+            document.getElementById('msgInput').disabled = false;
+            document.getElementById('sendBtn').disabled = false;
+
+            loadStories();
+            renderAccountList(); // Render daftar akun
+
+            showToast('Selamat datang!', true);
+        }
+
+        // ========================================
+        // TAB SWITCHING
+        // ========================================
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-item').forEach(el => {
+                el.classList.toggle('active', el.dataset.tab === tab);
+            });
+            document.querySelectorAll('.tab-panel').forEach(el => {
+                el.classList.toggle('active', el.id === tab + 'Panel');
+            });
+            if (tab === 'chat') document.getElementById('chatBadge').classList.remove('show');
+            else if (tab === 'story') { document.getElementById('storyBadge').classList.remove('show'); renderStoryList(); }
+            else if (tab === 'akun') { document.getElementById('akunBadge').classList.remove('show'); renderAccountList(); }
+            else document.getElementById('videoBadge').classList.remove('show');
+        }
+
+        // ========================================
+        // ACCOUNT LIST (Menu Akun)
+        // ========================================
+        function renderAccountList() {
+            const list = document.getElementById('akunList');
+            const searchInput = document.getElementById('akunSearchInput');
+            const searchTerm = (searchInput ? searchInput.value.trim().toLowerCase() : '');
+
+            const profiles = getUserProfiles();
+            const now = Date.now();
+            const ONLINE_THRESHOLD = 5 * 60 * 1000; // 5 menit
+
+            // Ambil semua akun kecuali user sendiri
+            let accounts = Object.keys(profiles)
+                .filter(phone => phone !== myNumber)
+                .map(phone => ({
+                    phone: phone,
+                    name: profiles[phone].name || ('Pengguna ' + phone.slice(-4)),
+                    lastSeen: profiles[phone].lastSeen || 0,
+                    isOnline: (now - (profiles[phone].lastSeen || 0)) < ONLINE_THRESHOLD
+                }));
+
+            // Filter berdasarkan pencarian
+            if (searchTerm) {
+                accounts = accounts.filter(acc =>
+                    acc.name.toLowerCase().includes(searchTerm) ||
+                    acc.phone.includes(searchTerm) ||
+                    ('+62' + acc.phone).includes(searchTerm)
+                );
+            }
+
+            // Urutkan: online dulu, lalu terbaru
+            accounts.sort((a, b) => {
+                if (a.isOnline !== b.isOnline) return b.isOnline - a.isOnline;
+                return b.lastSeen - a.lastSeen;
+            });
+
+            // Update count
+            const totalProfiles = Object.keys(profiles).length;
+            document.getElementById('akunCount').textContent = (totalProfiles - 1) + ' akun';
+
+            list.innerHTML = '';
+
+            if (accounts.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'akun-empty';
+                empty.innerHTML = `
+                    <i class="fas fa-users"></i>
+                    <h3>${searchTerm ? 'Tidak ditemukan' : 'Belum ada akun lain'}</h3>
+                    <p>${searchTerm ? 'Coba kata kunci lain' : 'Setiap pengguna yang login di perangkat ini akan otomatis muncul di sini. Bagikan aplikasi ini ke teman Anda!'}</p>
+                `;
+                list.appendChild(empty);
+                return;
+            }
+
+            accounts.forEach(acc => {
+                const item = document.createElement('div');
+                item.className = 'akun-item';
+                item.onclick = () => showAccountActionSheet(acc.phone, acc.name);
+
+                const displayPhone = acc.phone.slice(0, 4) + ' ' + acc.phone.slice(4, 7) + ' ' + acc.phone.slice(7);
+                const timeAgo = getTimeAgo(acc.lastSeen);
+
+                item.innerHTML = `
+                    <div class="akun-item-avatar ${acc.isOnline ? '' : 'offline'}">
+                        ${acc.phone.slice(0, 2).toUpperCase()}
+                        <div class="online-dot ${acc.isOnline ? 'show' : ''}"></div>
+                    </div>
+                    <div class="akun-item-info">
+                        <div class="akun-name">${acc.name}</div>
+                        <div class="akun-phone">+62 ${displayPhone} · ${acc.isOnline ? 'Online' : timeAgo}</div>
+                    </div>
+                    <div class="akun-item-actions">
+                        <button class="akun-item-action chat-action" onclick="event.stopPropagation(); directChat('${acc.phone}')" title="Chat">
+                            <i class="fas fa-comment"></i>
+                        </button>
+                        <button class="akun-item-action video-action" onclick="event.stopPropagation(); directVideoCall('${acc.phone}')" title="Video Call">
+                            <i class="fas fa-video"></i>
+                        </button>
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        function showAccountActionSheet(phone, name) {
+            selectedAccountPhone = phone;
+            document.getElementById('actionSheetAvatar').textContent = phone.slice(0, 2).toUpperCase();
+            document.getElementById('actionSheetName').textContent = name || ('Pengguna ' + phone.slice(-4));
+            document.getElementById('actionSheetPhone').textContent = '+62 ' + phone.slice(0, 4) + ' ' + phone.slice(4, 7) + ' ' + phone.slice(7);
+            document.getElementById('actionSheetOverlay').classList.add('show');
+        }
+
+        function closeActionSheet(event) {
+            if (event && event.target.id !== 'actionSheetOverlay') return;
+            document.getElementById('actionSheetOverlay').classList.remove('show');
+            selectedAccountPhone = '';
+        }
+
+        function actionSheetChat() {
+            const phone = selectedAccountPhone;
+            closeActionSheet();
+            directChat(phone);
+        }
+
+        function actionSheetVideoCall() {
+            const phone = selectedAccountPhone;
+            closeActionSheet();
+            directVideoCall(phone);
+        }
+
+        // Langsung buat chat dengan target akun
+        function directChat(phone) {
+            if (!phone) return;
+            if (isChatConnected) disconnectChat();
+
+            // Set target dan langsung hubungkan
+            document.getElementById('chatTargetInput').value = phone;
+
+            // Beralih ke tab chat
+            switchTab('chat');
+
+            // Hubungkan setelah tab berganti
+            setTimeout(() => {
+                connectChat();
+            }, 150);
+        }
+
+        // Langsung panggil video call ke target akun
+        function directVideoCall(phone) {
+            if (!phone) return;
+
+            // Set target
+            document.getElementById('videoTargetInput').value = phone;
+
+            // Beralih ke tab video
+            switchTab('video');
+
+            // Panggil setelah tab berganti
+            setTimeout(() => {
+                makeCallVideo();
+            }, 200);
+        }
+
+        // ========================================
+        // STORY FUNCTIONS
+        // ========================================
+        function openUploadModal() {
+            document.getElementById('uploadModal').classList.add('show');
+            document.getElementById('uploadOptions').style.display = 'flex';
+            document.getElementById('uploadPreview').className = 'upload-preview';
+            document.getElementById('uploadPreview').innerHTML = '';
+            document.getElementById('uploadCaption').value = '';
+            document.getElementById('btnPostStory').disabled = true;
+            pendingFile = null;
+            pendingFileType = null;
+        }
+        function closeUploadModal() {
+            document.getElementById('uploadModal').classList.remove('show');
+            pendingFile = null;
+            pendingFileType = null;
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const maxSize = file.type.startsWith('video') ? 15 * 1024 * 1024 : 5 * 1024 * 1024;
+            if (file.size > maxSize) {
+                showToast('File terlalu besar (max ' + (maxSize / 1024 / 1024) + 'MB)', false);
+                event.target.value = '';
+                return;
+            }
+            pendingFile = file;
+            pendingFileType = file.type.startsWith('video') ? 'video' : 'image';
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const preview = document.getElementById('uploadPreview');
+                preview.className = 'upload-preview show';
+                if (pendingFileType === 'image') {
+                    preview.innerHTML = '<img src="' + e.target.result + '" alt="preview" />';
+                } else {
+                    preview.innerHTML = '<video src="' + e.target.result + '" controls></video>';
+                }
+                document.getElementById('uploadOptions').style.display = 'none';
+                document.getElementById('btnPostStory').disabled = false;
+            };
+            reader.readAsDataURL(file);
+            event.target.value = '';
+        }
+
+        function postStory() {
+            if (!pendingFile) return;
+            const btn = document.getElementById('btnPostStory');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Posting...';
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const storyObj = {
+                    id: 'story_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+                    owner: myNumber,
+                    ownerName: document.getElementById('userName').textContent,
+                    type: pendingFileType,
+                    data: e.target.result,
+                    caption: document.getElementById('uploadCaption').value.trim(),
+                    timestamp: Date.now(),
+                    viewed: false
+                };
+                myStories.push(storyObj);
+                saveMyStories();
+                broadcastStory(storyObj);
+                closeUploadModal();
+                renderStoryList();
+                showToast('Story berhasil diposting!', true);
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i> Posting';
+            };
+            reader.readAsDataURL(pendingFile);
+        }
+
+        function broadcastStory(story) {
+            if (chatDataConn && chatDataConn.open) {
+                try { chatDataConn.send(JSON.stringify({ type: 'story', story: story })); } catch (e) {}
+            }
+            if (peer && peer.connections) {
+                Object.keys(peer.connections).forEach(peerId => {
+                    peer.connections[peerId].forEach(conn => {
+                        if (conn.open && conn !== chatDataConn) {
+                            try { conn.send(JSON.stringify({ type: 'story', story: story })); } catch (e) {}
+                        }
+                    });
+                });
+            }
+        }
+
+        function handleIncomingStory(story) {
+            if (!story || !story.id) return;
+            const exists = stories.find(s => s.id === story.id) || myStories.find(s => s.id === story.id);
+            if (exists) return;
+            stories.push(story);
+            saveReceivedStories();
+            renderStoryList();
+            if (!document.getElementById('storyPanel').classList.contains('active')) {
+                const badge = document.getElementById('storyBadge');
+                badge.textContent = parseInt(badge.textContent || 0) + 1;
+                badge.classList.add('show');
+            }
+            showToast('📸 Story baru dari +62 ' + story.owner.slice(0, 4) + ' ' + story.owner.slice(4, 7), true);
+        }
+
+        function renderStoryList() {
+            const list = document.getElementById('storyList');
+            const now = Date.now();
+            const unviewedStories = stories.filter(s => !s.viewed && (now - s.timestamp < STORY_EXPIRY_MS));
+            const ownerMap = new Map();
+            unviewedStories.forEach(s => {
+                if (!ownerMap.has(s.owner)) ownerMap.set(s.owner, []);
+                ownerMap.get(s.owner).push(s);
+            });
+            list.innerHTML = '';
+
+            const myUnviewed = myStories.filter(s => now - s.timestamp < STORY_EXPIRY_MS);
+            const myItem = document.createElement('div');
+            myItem.className = 'story-item';
+            myItem.onclick = () => {
+                if (myUnviewed.length > 0) openStoryViewer(myNumber, myUnviewed);
+                else openUploadModal();
+            };
+            const myAvatarChar = myNumber.slice(0, 2).toUpperCase();
+            let myAvatarHTML = (myUnviewed.length > 0 && myUnviewed[0].type === 'image')
+                ? '<img src="' + myUnviewed[0].data + '" />' : myAvatarChar;
+            myItem.innerHTML = `
+                <div class="story-avatar mine ${myUnviewed.length === 0 ? 'viewed' : ''}">
+                    <div class="story-avatar-inner">${myAvatarHTML}</div>
+                    ${myUnviewed.length === 0 ? '<div class="add-badge"><i class="fas fa-plus"></i></div>' : ''}
+                </div>
+                <div class="story-info">
+                    <div class="story-name">Story Saya</div>
+                    <div class="story-meta">
+                        ${myUnviewed.length > 0 ? `<i class="fas fa-circle"></i> ${myUnviewed.length} story aktif` : '<i class="fas fa-plus-circle"></i> Ketuk untuk membuat'}
+                    </div>
+                </div>
+                ${myUnviewed.length > 0 ? `<div class="story-count-badge">${myUnviewed.length}</div>` : ''}
+            `;
+            list.appendChild(myItem);
+
+            ownerMap.forEach((ownerStories, owner) => {
+                const latestStory = ownerStories[ownerStories.length - 1];
+                const item = document.createElement('div');
+                item.className = 'story-item';
+                item.onclick = () => openStoryViewer(owner, ownerStories);
+                const firstChar = owner.slice(0, 2).toUpperCase();
+                let avatarHTML = latestStory.type === 'image' ? '<img src="' + latestStory.data + '" />' : firstChar;
+                item.innerHTML = `
+                    <div class="story-avatar">
+                        <div class="story-avatar-inner">${avatarHTML}</div>
+                    </div>
+                    <div class="story-info">
+                        <div class="story-name">+62 ${owner.slice(0,4)} ${owner.slice(4,7)} ${owner.slice(7)}</div>
+                        <div class="story-meta"><i class="fas fa-clock"></i> ${getTimeAgo(latestStory.timestamp)}</div>
+                    </div>
+                    <div class="story-count-badge">${ownerStories.length}</div>
+                `;
+                list.appendChild(item);
+            });
+
+            if (myUnviewed.length === 0 && ownerMap.size === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'story-empty';
+                empty.innerHTML = `
+                    <i class="fas fa-circle-notch"></i>
+                    <h3>Belum ada story</h3>
+                    <p>Posting gambar atau video yang akan hilang otomatis setelah 24 jam atau setelah dilihat.</p>
+                    <button class="btn-create" onclick="openUploadModal()">
+                        <i class="fas fa-plus"></i> Buat Story Pertama
+                    </button>
+                `;
+                list.appendChild(empty);
+            }
+        }
+
+        function getTimeAgo(timestamp) {
+            const diff = Date.now() - timestamp;
+            const mins = Math.floor(diff / 60000);
+            const hours = Math.floor(diff / 3600000);
+            const days = Math.floor(diff / 86400000);
+            if (mins < 1) return 'Baru saja';
+            if (mins < 60) return mins + ' menit lalu';
+            if (hours < 24) return hours + ' jam lalu';
+            return days + ' hari lalu';
+        }
+
+        // ========================================
+        // STORY VIEWER
+        // ========================================
+        function openStoryViewer(owner, storiesArray) {
+            currentStoryOwner = owner;
+            currentViewerStories = storiesArray;
+            currentViewerIndex = 0;
+            document.getElementById('viewerName').textContent = owner === myNumber ? 'Story Saya' : '+62 ' + owner.slice(0,4) + ' ' + owner.slice(4,7) + ' ' + owner.slice(7);
+            document.getElementById('viewerTime').textContent = getTimeAgo(storiesArray[0].timestamp);
+            const avatarInner = document.getElementById('viewerAvatarInner');
+            if (storiesArray[0].type === 'image') avatarInner.innerHTML = '<img src="' + storiesArray[0].data + '" />';
+            else avatarInner.textContent = owner.slice(0, 2).toUpperCase();
+            document.getElementById('storyViewer').classList.add('show');
+            showStoryAtIndex(0);
+        }
+
+        function showStoryAtIndex(index) {
+            if (index < 0 || index >= currentViewerStories.length) { closeStoryViewer(); return; }
+            currentViewerIndex = index;
+            const story = currentViewerStories[index];
+            const progressBar = document.getElementById('storyProgressBar');
+            progressBar.innerHTML = '';
+            currentViewerStories.forEach((s, i) => {
+                const seg = document.createElement('div');
+                seg.className = 'story-progress-segment';
+                const fill = document.createElement('div');
+                fill.className = 'story-progress-fill';
+                if (i < index) fill.style.width = '100%';
+                seg.appendChild(fill);
+                progressBar.appendChild(seg);
+            });
+            const content = document.getElementById('storyContent');
+            content.innerHTML = '';
+            if (story.type === 'image') {
+                const img = document.createElement('img');
+                img.src = story.data;
+                content.appendChild(img);
+            } else {
+                const video = document.createElement('video');
+                video.src = story.data;
+                video.autoplay = true;
+                video.playsInline = true;
+                content.appendChild(video);
+                video.play().catch(() => {});
+            }
+            if (story.caption) {
+                const captionEl = document.createElement('div');
+                captionEl.style.cssText = 'position:absolute;bottom:80px;left:16px;right:16px;background:rgba(0,0,0,0.6);color:#fff;padding:12px 16px;border-radius:12px;font-size:0.85rem;text-align:center;';
+                captionEl.textContent = story.caption;
+                content.appendChild(captionEl);
+            }
+            setTimeout(() => markStoryAsViewed(story), 1000);
+
+            clearTimeout(storyTimer);
+            clearInterval(storyProgressInterval);
+            const duration = story.type === 'video' ? 15000 : STORY_DURATION;
+            const startTime = Date.now();
+            storyProgressInterval = setInterval(() => {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(100, (elapsed / duration) * 100);
+                const segments = progressBar.querySelectorAll('.story-progress-segment');
+                if (segments[index]) {
+                    const fill = segments[index].querySelector('.story-progress-fill');
+                    if (fill) fill.style.width = progress + '%';
+                }
+                if (progress >= 100) clearInterval(storyProgressInterval);
+            }, 50);
+            storyTimer = setTimeout(nextStory, duration);
+        }
+
+        function markStoryAsViewed(story) {
+            story.viewed = true;
+            const idx = stories.findIndex(s => s.id === story.id);
+            if (idx !== -1) { stories[idx].viewed = true; saveReceivedStories(); }
+            setTimeout(() => {
+                stories = stories.filter(s => s.id !== story.id || !s.viewed);
+                saveReceivedStories();
+                renderStoryList();
+            }, 100);
+        }
+
+        function nextStory() {
+            clearTimeout(storyTimer);
+            clearInterval(storyProgressInterval);
+            if (currentViewerIndex + 1 < currentViewerStories.length) showStoryAtIndex(currentViewerIndex + 1);
+            else closeStoryViewer();
+        }
+        function prevStory() {
+            clearTimeout(storyTimer);
+            clearInterval(storyProgressInterval);
+            if (currentViewerIndex > 0) showStoryAtIndex(currentViewerIndex - 1);
+        }
+        function closeStoryViewer() {
+            clearTimeout(storyTimer);
+            clearInterval(storyProgressInterval);
+            document.getElementById('storyViewer').classList.remove('show');
+            document.getElementById('storyContent').innerHTML = '';
+            loadStories();
+        }
+
+        // ========================================
+        // CHAT SYSTEM
+        // ========================================
+        function toggleChatConnection() {
+            if (isChatConnected) disconnectChat();
+            else connectChat();
+        }
+
+        function connectChat() {
+            const raw = document.getElementById('chatTargetInput').value.trim();
+            if (!raw) { showToast('Masukkan nomor tujuan', false); return; }
+            const result = validatePhone(raw);
+            if (!result.valid) { showToast(result.message, false); return; }
+            if (result.number === myNumber) { showToast('Tidak bisa chat dengan diri sendiri', false); return; }
+
+            chatPartner = result.number;
+            const targetPeerId = 'rc_' + chatPartner;
+            if (!peer) { showToast('Koneksi peer belum siap', false); return; }
+            if (chatDataConn && chatDataConn.open) disconnectChat();
+
+            // Buat profil otomatis untuk partner jika belum ada
+            if (!userExists(chatPartner)) {
+                // Tetap izinkan chat walaupun belum daftar (peer ID akan unavailable-id)
+            }
+
+            chatDataConn = peer.connect(targetPeerId, {
+                reliable: true,
+                metadata: { type: 'chat', caller: myNumber }
+            });
+
+            chatDataConn.on('open', function() {
+                isChatConnected = true;
+                updateChatStatus('Terhubung', true);
+                document.getElementById('chatConnectBtn').innerHTML = '<i class="fas fa-plug"></i> Putus';
+                document.getElementById('chatConnectBtn').classList.add('disconnect');
+                document.getElementById('msgInput').disabled = false;
+                document.getElementById('sendBtn').disabled = false;
+                document.getElementById('msgInput').focus();
+                addChatMessage('system', 'Terhubung dengan +62 ' + chatPartner.slice(0, 4) + ' ' + chatPartner.slice(4, 7) + ' ' + chatPartner.slice(7));
+                localStorage.setItem('realcall_last_chat', chatPartner);
+            });
+
+            chatDataConn.on('data', function(data) {
+                try {
+                    const parsed = JSON.parse(data);
+                    if (parsed.type === 'chat') {
+                        addChatMessage('received', parsed.message, parsed.timestamp);
+                        if (!document.getElementById('chatPanel').classList.contains('active')) {
+                            document.getElementById('chatBadge').textContent = parseInt(document.getElementById('chatBadge').textContent || 0) + 1;
+                            document.getElementById('chatBadge').classList.add('show');
+                        }
+                    } else if (parsed.type === 'story') {
+                        handleIncomingStory(parsed.story);
+                    }
+                } catch (e) {
+                    addChatMessage('received', data);
+                }
+            });
+
+            chatDataConn.on('close', function() { disconnectChat(); });
+            chatDataConn.on('error', function(err) {
+                showToast('Gagal terhubung ke +62 ' + chatPartner.slice(0,4) + '. Pastikan aplikasi mereka aktif.', false);
+                disconnectChat();
+            });
+        }
+
+        function disconnectChat() {
+            if (chatDataConn) { try { chatDataConn.close(); } catch (e) {} chatDataConn = null; }
+            isChatConnected = false;
+            updateChatStatus('Putus', false);
+            document.getElementById('chatConnectBtn').innerHTML = '<i class="fas fa-plug"></i> Hubung';
+            document.getElementById('chatConnectBtn').classList.remove('disconnect');
+            document.getElementById('msgInput').disabled = true;
+            document.getElementById('sendBtn').disabled = true;
+        }
+
+        function handleIncomingChat(conn) {
+            const caller = conn.peer.replace('rc_', '');
+            if (caller === myNumber) return;
+            if (chatDataConn && chatDataConn.open && chatDataConn.peer === conn.peer) { conn.close(); return; }
+
+            conn.on('open', function() {
+                if (chatDataConn && chatDataConn.open && chatDataConn.peer !== conn.peer) {
+                    try { chatDataConn.close(); } catch (e) {}
+                }
+                chatDataConn = conn;
+                isChatConnected = true;
+                chatPartner = caller;
+                updateChatStatus('Terhubung', true);
+                document.getElementById('chatConnectBtn').innerHTML = '<i class="fas fa-plug"></i> Putus';
+                document.getElementById('chatConnectBtn').classList.add('disconnect');
+                document.getElementById('msgInput').disabled = false;
+                document.getElementById('sendBtn').disabled = false;
+                document.getElementById('chatTargetInput').value = caller;
+                localStorage.setItem('realcall_last_chat', caller);
+                addChatMessage('system', 'Terhubung dengan +62 ' + caller.slice(0, 4) + ' ' + caller.slice(4, 7) + ' ' + caller.slice(7));
+
+                const now = Date.now();
+                const activeStories = myStories.filter(s => now - s.timestamp < STORY_EXPIRY_MS);
+                activeStories.forEach(s => {
+                    try { setTimeout(() => { if (conn.open) conn.send(JSON.stringify({ type: 'story', story: s })); }, 500); } catch (e) {}
+                });
+            });
+
+            conn.on('data', function(data) {
+                try {
+                    const parsed = JSON.parse(data);
+                    if (parsed.type === 'chat') {
+                        addChatMessage('received', parsed.message, parsed.timestamp);
+                        if (!document.getElementById('chatPanel').classList.contains('active')) {
+                            document.getElementById('chatBadge').textContent = parseInt(document.getElementById('chatBadge').textContent || 0) + 1;
+                            document.getElementById('chatBadge').classList.add('show');
+                        }
+                    } else if (parsed.type === 'story') {
+                        handleIncomingStory(parsed.story);
+                    }
+                } catch (e) {
+                    addChatMessage('received', data);
+                }
+            });
+
+            conn.on('close', function() { disconnectChat(); });
+        }
+
+        function sendMessage() {
+            if (!isChatConnected || !chatDataConn || !chatDataConn.open) { showToast('Tidak terhubung', false); return; }
+            const input = document.getElementById('msgInput');
+            const text = input.value.trim();
+            if (!text) return;
+            const timestamp = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+            const data = JSON.stringify({ type: 'chat', message: text, timestamp: timestamp });
+            try {
+                chatDataConn.send(data);
+                addChatMessage('sent', text, timestamp);
+                input.value = '';
+                input.style.height = 'auto';
+            } catch (e) { showToast('Gagal kirim pesan: ' + e.message, false); }
+        }
+
+        function addChatMessage(type, content, time) {
+            const container = document.getElementById('chatMessages');
+            const empty = document.getElementById('chatEmpty');
+            if (empty) empty.style.display = 'none';
+            const div = document.createElement('div');
+            div.className = 'chat-msg ' + type;
+            if (type === 'system') {
+                div.textContent = content;
+                container.appendChild(div);
+                container.scrollTop = container.scrollHeight;
+                return;
+            }
+            const sender = type === 'sent' ? 'Anda' : '+62 ' + chatPartner.slice(0, 4) + ' ' + chatPartner.slice(4, 7) + ' ' + chatPartner.slice(7);
+            const ts = time || new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+            div.innerHTML = `
+                <span class="msg-sender">${sender}</span>
+                <span class="msg-text">${content}</span>
+                <span class="msg-time">${ts}</span>
+            `;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+            chatMessages.push({ type, content, time: ts, sender });
+        }
+
+        function updateChatStatus(text, connected) {
+            document.getElementById('chatStatusText').textContent = text;
+            document.getElementById('chatDot').className = 'dot-chat' + (connected ? ' online' : ' offline');
+        }
+
+        // ========================================
+        // VIDEO CALL
+        // ========================================
+        function toggleVideoCall() {
+            if (videoCallActive) endCallVideo();
+            else makeCallVideo();
+        }
+
+        function makeCallVideo() {
+            if (videoCallActive) { showToast('Panggilan sudah aktif', false); return; }
+            const raw = document.getElementById('videoTargetInput').value.trim();
+            if (!raw) { showToast('Masukkan nomor tujuan', false); return; }
+            const result = validatePhone(raw);
+            if (!result.valid) { showToast(result.message, false); return; }
+            if (result.number === myNumber) { showToast('Tidak bisa memanggil diri sendiri', false); return; }
+
+            videoPartner = result.number;
+            const targetPeerId = 'rc_' + videoPartner;
+            if (!peer) { showToast('Koneksi peer belum siap', false); return; }
+            if (!localStream) { showToast('Tidak ada akses media', false); return; }
+            initiateCallVideo(targetPeerId);
+        }
+
+        function initiateCallVideo(targetPeerId) {
+            const options = { metadata: { video: true, caller: myNumber, type: 'video' } };
+            try {
+                const call = peer.call(targetPeerId, localStream, options);
+                if (call) {
+                    handleConnectedCallVideo(call);
+                    showToast('Memanggil...', true);
+                    updateVideoStatus('Memanggil...', true);
+                }
+            } catch (e) { showToast('Error: ' + e.message, false); }
+        }
+
+        function handleConnectedCallVideo(call) {
+            currentCall = call;
+            videoCallActive = true;
+            document.getElementById('videoCallBtn').innerHTML = '<i class="fas fa-phone-slash"></i> Tutup';
+            document.getElementById('videoCallBtn').classList.add('endcall-btn');
+            updateVideoStatus('Terhubung', true);
+
+            document.getElementById('callerNameVideo').textContent = 'Mitra';
+            document.getElementById('callerStatusVideo').textContent = 'Sedang bicara';
+
+            call.on('stream', function(stream) {
+                remoteStream = stream;
+                document.getElementById('remoteVideo').srcObject = stream;
+                document.getElementById('remotePlaceholderVideo').style.display = 'none';
+                document.getElementById('callInfoOverlayVideo').classList.add('hidden');
+                showToast('Panggilan aktif', true);
+                startCallTimerVideo();
+            });
+
+            call.on('close', function() { resetCallStateVideo(); });
+            call.on('error', function(err) {
+                showToast('Gagal memanggil. Pastikan penerima aktif.', false);
+                resetCallStateVideo();
+            });
+        }
+
+        function handleIncomingCallVideo(call) {
+            if (videoCallActive) { call.close(); return; }
+            incomingCall = call;
+            isIncomingCall = true;
+            const callerNumber = call.peer.replace('rc_', '');
+            const displayNumber = callerNumber.slice(0, 4) + ' ' + callerNumber.slice(4, 7) + ' ' + callerNumber.slice(7);
+
+            document.getElementById('incomingCallerNumberVideo').textContent = '+62 ' + displayNumber;
+            document.getElementById('incomingCallOverlayVideo').classList.add('show');
+            document.getElementById('ringingAvatarVideo').classList.add('ringing');
+
+            playRingtoneVideo();
+            if (navigator.vibrate) {
+                navigator.vibrate([500, 200, 500, 200, 500]);
+                window._vibrateIntervalVideo = setInterval(() => { navigator.vibrate([500, 200, 500, 200, 500]); }, 3000);
+            }
+            showToast(`Panggilan video dari +62 ${displayNumber}`, true);
+            switchTab('video');
+            document.getElementById('videoBadge').textContent = '1';
+            document.getElementById('videoBadge').classList.add('show');
+        }
+
+        function answerCallVideo() {
+            stopRingtoneVideo();
+            if (window._vibrateIntervalVideo) { clearInterval(window._vibrateIntervalVideo); window._vibrateIntervalVideo = null; }
+            if (!incomingCall) return;
+
+            if (localStream) {
+                incomingCall.answer(localStream);
+                handleConnectedCallVideo(incomingCall);
+            } else {
+                navigator.mediaDevices.getUserMedia({ audio: true, video: true })
+                    .then(stream => {
+                        localStream = stream;
+                        document.getElementById('localVideo').srcObject = stream;
+                        document.getElementById('localPlaceholderVideo').style.display = 'none';
+                        updateMediaIndicator();
+                        incomingCall.answer(stream);
+                        handleConnectedCallVideo(incomingCall);
+                    })
+                    .catch(() => {
+                        document.getElementById('incomingCallOverlayVideo').classList.remove('show');
+                        document.getElementById('ringingAvatarVideo').classList.remove('ringing');
+                        isIncomingCall = false;
+                    });
+            }
+            document.getElementById('incomingCallOverlayVideo').classList.remove('show');
+            document.getElementById('ringingAvatarVideo').classList.remove('ringing');
+            isIncomingCall = false;
+            document.getElementById('videoBadge').classList.remove('show');
+        }
+
+        function rejectCallVideo() {
+            stopRingtoneVideo();
+            if (window._vibrateIntervalVideo) { clearInterval(window._vibrateIntervalVideo); window._vibrateIntervalVideo = null; }
+            if (incomingCall) incomingCall.close();
+            document.getElementById('incomingCallOverlayVideo').classList.remove('show');
+            document.getElementById('ringingAvatarVideo').classList.remove('ringing');
+            isIncomingCall = false;
+            document.getElementById('videoBadge').classList.remove('show');
+            showToast('Panggilan ditolak', false);
+        }
+
+        function endCallVideo() {
+            stopRingtoneVideo();
+            if (window._vibrateIntervalVideo) { clearInterval(window._vibrateIntervalVideo); window._vibrateIntervalVideo = null; }
+            if (currentCall) { try { currentCall.close(); } catch (e) {} }
+            resetCallStateVideo();
+            showToast('Panggilan diakhiri', false);
+        }
+
+        function resetCallStateVideo() {
+            if (callTimerInterval) { clearInterval(callTimerInterval); callTimerInterval = null; }
+            document.getElementById('callTimerVideo').textContent = '00:00';
+            remoteStream = null;
+            document.getElementById('remoteVideo').srcObject = null;
+            videoCallActive = false;
+            currentCall = null;
+            incomingCall = null;
+            isIncomingCall = false;
+            document.getElementById('incomingCallOverlayVideo').classList.remove('show');
+            document.getElementById('ringingAvatarVideo').classList.remove('ringing');
+            document.getElementById('remotePlaceholderVideo').style.display = 'flex';
+            document.getElementById('callInfoOverlayVideo').classList.remove('hidden');
+            updateVideoStatus('Siap', false);
+            document.getElementById('videoCallBtn').innerHTML = '<i class="fas fa-phone"></i> Panggil';
+            document.getElementById('videoCallBtn').classList.remove('endcall-btn');
+            document.getElementById('videoBadge').classList.remove('show');
+        }
+
+        function updateVideoStatus(text, connected) {
+            document.getElementById('videoStatusText').textContent = text;
+            document.getElementById('videoDot').className = 'dot-video' + (connected ? ' active' : '');
+            if (text === 'Error') document.getElementById('videoDot').className = 'dot-video error';
+        }
+
+        function startCallTimerVideo() {
+            if (callTimerInterval) clearInterval(callTimerInterval);
+            let seconds = 0;
+            callTimerInterval = setInterval(() => {
+                seconds++;
+                const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+                const s = String(seconds % 60).padStart(2, '0');
+                document.getElementById('callTimerVideo').textContent = m + ':' + s;
+            }, 1000);
+        }
+
+        // ========================================
+        // VIDEO CONTROLS
+        // ========================================
+        function toggleMuteVideo() {
+            if (!localStream) return;
+            const track = localStream.getAudioTracks()[0];
+            if (!track) return;
+            isMuted = !isMuted;
+            track.enabled = !isMuted;
+            const btn = document.getElementById('micBtnVideo');
+            btn.className = 'ctrl-btn' + (isMuted ? ' off' : ' active');
+            btn.innerHTML = isMuted ? '<i class="fas fa-microphone-slash"></i>' : '<i class="fas fa-microphone"></i>';
+            updateMediaIndicator();
+        }
+        function toggleVideoCam() {
+            if (!localStream) return;
+            const track = localStream.getVideoTracks()[0];
+            if (!track) return;
+            isVideoOff = !isVideoOff;
+            track.enabled = !isVideoOff;
+            const btn = document.getElementById('videoBtnVideo');
+            btn.className = 'ctrl-btn' + (isVideoOff ? ' off' : ' active');
+            btn.innerHTML = isVideoOff ? '<i class="fas fa-video-slash"></i>' : '<i class="fas fa-video"></i>';
+            document.getElementById('localPlaceholderVideo').style.display = isVideoOff ? 'flex' : 'none';
+            if (isVideoOff) {
+                document.getElementById('localPlaceholderVideo').innerHTML = '<i class="fas fa-video-slash" style="color:var(--secondary);"></i><span>Kamera mati</span>';
+            }
+            updateMediaIndicator();
+        }
+        function toggleSpeakerVideo() {
+            isSpeakerOn = !isSpeakerOn;
+            const btn = document.getElementById('speakerBtnVideo');
+            btn.className = 'ctrl-btn' + (isSpeakerOn ? ' speaker-on' : '');
+            btn.innerHTML = isSpeakerOn ? '<i class="fas fa-volume-up"></i>' : '<i class="fas fa-volume-off"></i>';
+        }
+        function toggleFullscreenVideo() {
+            const container = document.getElementById('videoContainer');
+            if (!document.fullscreenElement) container.requestFullscreen?.() || container.webkitRequestFullscreen?.();
+            else document.exitFullscreen?.() || document.webkitExitFullscreen?.();
+        }
+        function updateMediaIndicator() {
+            const micInd = document.getElementById('micIndicator');
+            const camInd = document.getElementById('camIndicator');
+            if (localStream) {
+                const audioTrack = localStream.getAudioTracks()[0];
+                const videoTrack = localStream.getVideoTracks()[0];
+                micInd.className = 'indicator ' + (audioTrack?.enabled ? 'active' : 'inactive');
+                camInd.className = 'indicator ' + (videoTrack?.enabled ? 'active' : 'inactive');
+            }
+        }
+
+        // ========================================
+        // RINGTONE
+        // ========================================
+        function playRingtoneVideo() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const frequencies = [440, 580];
+                let noteIndex = 0;
+                let isPlaying = true;
+                function playNote() {
+                    if (!isPlaying) return;
+                    try {
+                        const osc = audioCtx.createOscillator();
+                        const gain = audioCtx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.value = frequencies[noteIndex % 2];
+                        gain.gain.value = 0.08;
+                        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+                        osc.connect(gain);
+                        gain.connect(audioCtx.destination);
+                        osc.start(audioCtx.currentTime);
+                        osc.stop(audioCtx.currentTime + 0.4);
+                        noteIndex++;
+                        ringtoneInterval = setTimeout(() => { if (isPlaying) playNote(); }, 500);
+                    } catch (e) { isPlaying = false; }
+                }
+                playNote();
+                window._ringtoneStopVideo = function() {
+                    isPlaying = false;
+                    if (ringtoneInterval) { clearTimeout(ringtoneInterval); ringtoneInterval = null; }
+                };
+            } catch (e) { console.log('Ringtone error:', e); }
+        }
+        function stopRingtoneVideo() {
+            if (window._ringtoneStopVideo) window._ringtoneStopVideo();
+            if (ringtoneInterval) { clearTimeout(ringtoneInterval); ringtoneInterval = null; }
+        }
+
+        // ========================================
+        // LOGOUT
+        // ========================================
+        function logout() {
+            stopRingtoneVideo();
+            if (window._vibrateIntervalVideo) { clearInterval(window._vibrateIntervalVideo); window._vibrateIntervalVideo = null; }
+            if (videoCallActive) endCallVideo();
+            if (isChatConnected) disconnectChat();
+            if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+            if (peer) { peer.destroy(); peer = null; }
+            clearLastUser();
+            document.getElementById('appContainer').classList.remove('visible');
+            document.getElementById('loginScreen').classList.remove('hidden');
+            resetLoginButtons();
+            document.getElementById('loginPhoneInput').value = '';
+            document.getElementById('loginPasswordInput').value = '';
+            document.getElementById('loginSuccess').className = 'login-success';
+            updateSavedInfo();
+            showToast('Logout berhasil', false);
+        }
+
+        // ========================================
+        // DRAG LOCAL VIDEO
+        // ========================================
+        let isDraggingVideo = false, dragOffsetXVideo = 0, dragOffsetYVideo = 0;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const container = document.getElementById('localVideoContainerVideo');
+            container.addEventListener('mousedown', function(e) {
+                const rect = container.getBoundingClientRect();
+                dragOffsetXVideo = e.clientX - rect.left;
+                dragOffsetYVideo = e.clientY - rect.top;
+                isDraggingVideo = true;
+                e.preventDefault();
+            });
+            document.addEventListener('mousemove', function(e) {
+                if (!isDraggingVideo) return;
+                const c = document.getElementById('localVideoContainerVideo');
+                const pRect = c.parentElement.getBoundingClientRect();
+                let x = e.clientX - pRect.left - dragOffsetXVideo;
+                let y = e.clientY - pRect.top - dragOffsetYVideo;
+                const maxX = pRect.width - c.offsetWidth - 10;
+                const maxY = pRect.height - c.offsetHeight - 10;
+                c.style.left = Math.max(10, Math.min(maxX, x)) + 'px';
+                c.style.right = 'auto';
+                c.style.top = Math.max(10, Math.min(maxY, y)) + 'px';
+                c.style.bottom = 'auto';
+            });
+            document.addEventListener('mouseup', function() { isDraggingVideo = false; });
+
+            container.addEventListener('touchstart', function(e) {
+                const touch = e.touches[0];
+                const rect = container.getBoundingClientRect();
+                dragOffsetXVideo = touch.clientX - rect.left;
+                dragOffsetYVideo = touch.clientY - rect.top;
+                isDraggingVideo = true;
+                e.preventDefault();
+            }, { passive: false });
+            document.addEventListener('touchmove', function(e) {
+                if (!isDraggingVideo) return;
+                const touch = e.touches[0];
+                const c = document.getElementById('localVideoContainerVideo');
+                const pRect = c.parentElement.getBoundingClientRect();
+                let x = touch.clientX - pRect.left - dragOffsetXVideo;
+                let y = touch.clientY - pRect.top - dragOffsetYVideo;
+                const maxX = pRect.width - c.offsetWidth - 10;
+                const maxY = pRect.height - c.offsetHeight - 10;
+                c.style.left = Math.max(10, Math.min(maxX, x)) + 'px';
+                c.style.right = 'auto';
+                c.style.top = Math.max(10, Math.min(maxY, y)) + 'px';
+                c.style.bottom = 'auto';
+            }, { passive: false });
+            document.addEventListener('touchend', function() { isDraggingVideo = false; });
+
+            document.getElementById('msgInput').addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+            });
+            document.getElementById('msgInput').addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+            });
+            document.getElementById('chatTargetInput').addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') toggleChatConnection();
+            });
+            document.getElementById('videoTargetInput').addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') toggleVideoCall();
+            });
+
+            updateSavedInfo();
+
+            const saved = getLastUser();
+            if (saved) {
+                const display = saved.slice(0, 4) + ' ' + saved.slice(4, 7) + ' ' + saved.slice(7);
+                document.getElementById('savedInfo').style.display = 'flex';
+                document.getElementById('savedNumber').textContent = '+62 ' + display;
+                document.getElementById('loginPhoneInput').value = saved;
+                const pw = getPassword(saved);
+                if (pw) document.getElementById('loginPasswordInput').value = pw;
+                setTimeout(() => {
+                    if (!document.getElementById('loginScreen').classList.contains('hidden')) handleLogin();
+                }, 600);
+            }
+
+            ['loginPhoneInput', 'registerPhoneInput'].forEach(id => {
+                const input = document.getElementById(id);
+                if (!input) return;
+                input.addEventListener('input', function() {
+                    const val = this.value.trim();
+                    const wrapper = document.getElementById(id.replace('Input', 'Wrapper'));
+                    const helper = document.getElementById(id.replace('Input', 'Helper'));
+                    if (!wrapper || !helper) return;
+                    if (val.length === 0) { wrapper.className = 'input-wrapper'; helper.className = 'helper-text'; return; }
+                    const result = validatePhone(val);
+                    wrapper.className = 'input-wrapper ' + (result.valid ? 'success' : 'error');
+                    helper.className = 'helper-text ' + (result.valid ? 'success' : 'error');
+                    helper.innerHTML = `<span>${result.valid ? '✅' : '❌'} ${result.message}</span>`;
+                });
+            });
+        });
+
+        window.addEventListener('beforeunload', function() {
+            stopRingtoneVideo();
+            clearTimeout(storyTimer);
+            clearInterval(storyProgressInterval);
+            if (window._vibrateIntervalVideo) clearInterval(window._vibrateIntervalVideo);
+            if (currentCall) { try { currentCall.close(); } catch (e) {} }
+            if (chatDataConn) { try { chatDataConn.close(); } catch (e) {} }
+            if (localStream) localStream.getTracks().forEach(t => t.stop());
+            if (peer) peer.destroy();
+        });
+    </script>
+</body>
+</html>
